@@ -2,7 +2,8 @@
   (:require [clucy.core :as clucy]
             [clojure.string :as str]
             [green-tags.core :as tags])
-  (:import [org.jaudiotagger.audio.exceptions InvalidAudioFrameException])
+  (:import [org.jaudiotagger.audio.exceptions
+            CannotReadException InvalidAudioFrameException])
   (:gen-class))
 
 (def index (clucy/disk-index "/tmp/sledge1/"))
@@ -11,7 +12,8 @@
   (assoc
       (try
         (tags/get-all-info f)
-        (catch InvalidAudioFrameException e {:exception e}))
+        (catch InvalidAudioFrameException e {:exception e})
+        (catch CannotReadException e {:exception e}))
     :pathname (.getPath f)))
 
 (defn file-ext [file]
@@ -50,7 +52,6 @@
 (defn freshen-folder [index folder]
   (reduce upsert-tags index
           (map tags (music-files folder))))
-
 
 ;; we need a web server with
 ;; 1) a front page with a search box & other examples
