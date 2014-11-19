@@ -1,8 +1,9 @@
 (ns sledge.server
-  (:require [sledge.core :as core]
+  (:require [sledge.search :as search]
             [clucy.core :as clucy]
             [hiccup.core :as h]
             [clojure.string :as str]
+            [clojure.data.json :as json]
             [org.httpkit.server :as http]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
@@ -30,6 +31,22 @@
                   "&album=" (pr-str album))}
    album])
 
+(defn tracks-json [req]
+  (let [p (:params req)
+        fields [:artist :album :title :year :album-artist]
+        num-rows 50
+        terms (reduce (fn [terms k]
+                        (if-let [v (get p (name k))]
+                          (assoc terms k v)
+                          terms))
+                      fields)
+        project-to (map keyword (str/split (get p "_fields") #","))
+        tracks (distinct (map #(apply select-keys % project-to)
+                              (search/search search/index terms num-rows)))]
+    {:status 200
+     :headers {"Content-type" "text/json"}
+     :body (json/write-str tracks)}))
+
 
 (defn format-result [r]
   (let [artist (:artist r)
@@ -50,39 +67,24 @@
       (when q
         [:ul
          (map (fn [r] [:li (format-result r)])
-              (clucy/search core/index q 10))])]]))
+              (clucy/search search/index q 10))])]]))
 
 (defn artist-view [req]
-  (let [tracks (core/search core/index {:artist (get (:params req) "artist")} 999)
+  (let [tracks (search/search search/index {:artist (get (:params req) "artist")} 999)
         artist (str/join " / " (sort (distinct (map :artist tracks))))
         albums (sort (distinct (map :album tracks)))]
-    [:html
-     (head nil)
-     [:body
-      [:h1 artist]
-      (search-form (str "artist: " (pr-str artist)))
-      [:ul
-       (map (fn [album] [:li (album-link artist album)])
-            albums)]]]))
+    nil))
 
 (defn album-view [req]
   (let [artist (get (:params req) "artist")
         tracks (clucy/search
-                core/index
+                search/index
                 (str "album: " (pr-str (get (:params req) "album"))
                      " AND (artist: " artist " OR album-artist: " artist ")")
                 999)
         artists (distinct (map :artist tracks))
         name (distinct (map :album tracks))]
-    [:html
-     (head nil)
-     [:body
-      [:h1 (str/join " / " name)]
-      [:h2 (str/join " / " artists)]
-      (search-form nil)
-      [:ul
-       (map (fn [r] [:li (format-result r)])
-            (sort-by :track-num tracks))]]]))
+    nil))
 
 (defn ringo [view]
   (fn [req]
@@ -90,15 +92,18 @@
      :headers {"Content-type" "text/html; charset=UTF-8"}
      :body (h/html (view req))}))
 
+
+;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
+
+
 (defn routes [req]
   (let [u (:uri req)]
     (cond
-     (.startsWith u "/album") ((ringo album-view) req)
-     (.startsWith u "/artist") ((ringo artist-view) req)
+     (.startsWith u "/tracks.json") (tracks-json req)
      :else ((ringo front-page-view) req)
      )))
 
-(def app (res/wrap-resource (wp/wrap-params #'routes)))
+(def app (res/wrap-resource (wp/wrap-params #'routes) "/"))
 
 (defonce server (atom nil))
 

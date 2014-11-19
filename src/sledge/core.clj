@@ -1,12 +1,12 @@
 (ns sledge.core
   (:require [clucy.core :as clucy]
             [clojure.string :as str]
+            [sledge.server :as server]
+            [sledge.search :as search]
             [green-tags.core :as tags])
   (:import [org.jaudiotagger.audio.exceptions
             CannotReadException InvalidAudioFrameException])
   (:gen-class))
-
-(def index (clucy/disk-index "/tmp/sledge1/"))
 
 (defn tags [f]
   (assoc
@@ -27,18 +27,12 @@
 (defn music-files [path]
   (filter music-file? (file-seq (clojure.java.io/file path))))
 
-(defn stringize-search-map [m]
-  (str/join " " (map (fn [[k v]] (str (name k) ":" (pr-str v))) m)))
-
-(defn search [index map num]
-  (clucy/search index (stringize-search-map map) num))
-
 (defn store-tags [index tags]
   (clucy/add index tags)
   index)
 
 (defn upsert-tags [index tags]
-  (if (first (search index {:pathname (:pathname tags)} 1))
+  (if (first (search/search index {:pathname (:pathname tags)} 1))
     index
     (store-tags index tags)))
 
@@ -53,18 +47,9 @@
   (reduce upsert-tags index
           (map tags (music-files folder))))
 
-;; we need a web server with
-;; 1) a front page with a search box & other examples
-;; 2) a page for each album
-;; 3) a page for each artist
-;; 4) a page for each track
-;; 5) each page with links to audio has an xspf link
-;; 6) a handler to transcode and download the actual audio
-
-;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
 
 
 (defn -main
-  "I don't do a whole lot ... yet."
   [& args]
+  (server/start)
   (println "Hello, World!"))
