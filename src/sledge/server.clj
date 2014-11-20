@@ -144,12 +144,28 @@
      :headers {"Content-type" "text/html; charset=UTF-8"}
      :body (h/html (view req))}))
 
-(defn base64 [string]
-  (.encodeBuffer (sun.misc.BASE64Encoder.) (.getBytes string)))
 
-(defn unbase64 [string]
-  (String. (.decodeBuffer (sun.misc.BASE64Decoder.) string)))
 
+(def mime-types
+  {"ogg" "audio/ogg"
+   "mp3" "audio/mpeg"
+   "flac" "audio/flac"
+   "wav" "audio/x-wav"
+   })
+
+(defn mime-type-for-ext [ext]
+  (get mime-types (.toLowerCase ext)))
+
+;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
+
+(defn maybe-transcode [pathname from to]
+  (let [from (:suffix (get encoding-types from))
+        mime-type (mime-type-for-ext to)]
+    (if (= from to)
+      {:status 200 :headers {"content-type" mime-type}
+       :body (clojure.java.io/file pathname)}
+      {:status 404 :headers {"content-type" "text/plain"}
+       :body "transcoding not implemented"})))
 
 (defn bits-handler [req]
   (let [urlpath (str/split (:uri req) #"/")
@@ -157,13 +173,11 @@
         real-pathname (unbase64 b64)]
     (println real-pathname)
     ;; XXX this *really* needs to be an exact match
-    (if-let [track (search/search search/index {:pathname real-pathname} 1)]
-      (send-to-client real-pathname :transcoding-to ext)
+    (if-let [r (first (filter
+                       #(= (:pathname %) real-pathname)
+                       (search/search search/index {:pathname real-pathname} 100)))]
+      (maybe-transcode real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
-
-
-;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
-
 
 (defn routes [req]
   (let [u (:uri req)]
