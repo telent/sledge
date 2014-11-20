@@ -96,6 +96,23 @@
      :headers {"Content-type" "text/html; charset=UTF-8"}
      :body (h/html (view req))}))
 
+(defn base64 [string]
+  (.encodeBuffer (sun.misc.BASE64Encoder.) (.getBytes string)))
+
+(defn unbase64 [string]
+  (String. (.decodeBuffer (sun.misc.BASE64Decoder.) string)))
+
+
+(defn bits-handler [req]
+  (let [urlpath (str/split (:uri req) #"/")
+        [b64 ext] (str/split (get urlpath 2) #"\.")
+        real-pathname (unbase64 b64)]
+    (println real-pathname)
+    ;; XXX this *really* needs to be an exact match
+    (if-let [track (search/search search/index {:pathname real-pathname} 1)]
+      (send-to-client real-pathname :transcoding-to ext)
+      {:status 404 :body "not found"})))
+
 
 ;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
 
@@ -104,6 +121,7 @@
   (let [u (:uri req)]
     (cond
      (.startsWith u "/tracks.json") (tracks-json req)
+     (.startsWith u "/bits/") (bits-handler req)
      :else ((ringo front-page-view) req)
      )))
 
