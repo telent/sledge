@@ -33,15 +33,19 @@
 
 (defn tracks-json [req]
   (let [p (:params req)
-        fields [:artist :album :title :year :album-artist]
+        fields [:artist :album :title :year :album-artist :track :genre
+                :length]
         num-rows 50
         terms (reduce (fn [terms k]
                         (if-let [v (get p (name k))]
                           (assoc terms k v)
                           terms))
+                      {}
                       fields)
-        project-to (map keyword (str/split (get p "_fields") #","))
-        tracks (distinct (map #(apply select-keys % project-to)
+        project (if-let [f (get p "_fields" ) ]
+                  #(select-keys % (map keyword (str/split f #",")))
+                  identity)
+        tracks (distinct (map project
                               (search/search search/index terms num-rows)))]
     {:status 200
      :headers {"Content-type" "text/json"}
