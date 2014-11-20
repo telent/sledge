@@ -17,7 +17,7 @@ $ lein do deps, uberjar
 
     $ java -jar sledge-0.1.0-standalone.jar 
 
-And point your web browser at http://lcoalhost:53281
+And point your web browser at http://localhost:53281
 
 ## Copyright
 
