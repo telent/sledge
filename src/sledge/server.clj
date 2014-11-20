@@ -7,7 +7,8 @@
             [org.httpkit.server :as http]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
-            ))
+            )
+  (:import [org.apache.commons.codec.binary Base64 Hex]))
 
 (defn head [title]
   [:head
@@ -31,9 +32,55 @@
                   "&album=" (pr-str album))}
    album])
 
+(defn base64 [string]
+  (Base64/encodeBase64URLSafeString (.getBytes string)))
+
+(defn unbase64 [string]
+  ;; apache commons decodeBase64 appears to not cope very well if it doesn't
+  ;; get the padding it expects, so we have to add that back in
+  (let [l (count string)
+        pad-l (- 4 (- l (* 4 (quot l 4))))]
+    (String. (Base64/decodeBase64 (str string (str/join (repeat pad-l "=")))))))
+
+(assert
+ (= (base64
+     "this string will base64 encode into something longher than one line")
+    "dGhpcyBzdHJpbmcgd2lsbCBiYXNlNjQgZW5jb2RlIGludG8gc29tZXRoaW5nIGxvbmdoZXIgdGhhbiBvbmUgbGluZQ"))
+
+(assert
+ (= (unbase64
+     "dGhpcyBzdHJpbmcgd2lsbCBiYXNlNjQgZW5jb2RlIGludG8gc29tZXRoaW5nIGxvbmdoZXIgdGhhbiBvbmUgbGluZQ")
+    "this string will base64 encode into something longher than one line"))
+
+;; given some input format, decide what format(s) we can offer it
+;; to the user in
+
+;; the keys to this map correspond to getEncodingType as returns by
+;; JAudioTagger
+
+(def encoding-types
+  {"mp3" {:mime "audio/mpeg" :suffix "mp3" :transcode []}
+   "FLAC 16 bits" {:mime "audio/flac" :suffix "flac" :transcode ["mp3"]}
+   })
+
+(defn media-links [r]
+  (let [enc (get encoding-types (:encoding-type r))
+        basename (base64 (:pathname r))]
+    (reduce (fn [h fmt]
+              (assoc h fmt { "href" (str "/bits/" basename "."  fmt)}))
+            {}
+            (conj (seq (:transcode enc)) (:suffix enc)))))
+
+(assert
+ (=
+  (media-links {:encoding-type "FLAC 16 bits"
+                :pathname "/path/to/audio.flac"})
+  {"mp3" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3"}, "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
+
 (defn tracks-json [req]
   (let [p (:params req)
         fields [:artist :album :title :year :album-artist :track :genre
+                :encoding-type
                 :length]
         num-rows 50
         terms (reduce (fn [terms k]
@@ -44,7 +91,7 @@
                       fields)
         project (if-let [f (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
-                  identity)
+                  #(assoc % "_links" (media-links %)))
         tracks (distinct (map project
                               (search/search search/index terms num-rows)))]
     {:status 200
@@ -59,6 +106,7 @@
         artist-l (artist-link artist)
         album-l  (album-link (or (:album-artist r) (:artist r)) album)]
     [:span {} artist-l " / " album-l " / " title]))
+
 
 (defn front-page-view [req]
   (let [q (get (:params req) "q" nil)]
