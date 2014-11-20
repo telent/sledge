@@ -1,36 +1,29 @@
 # sledge
 
-FIXME: description
+Available protocols such as DAAP, DLNA etc for publishing music media
+files (e.g. ripped CDs) on the local network and/or the internet are
+either insanely complex or prprietary or sometimes both,
 
-## Installation
+## Building
 
-Download from http://example.com/FIXME.
+Requires Leinigen. Clone the git repo, then
+
+$ lein do deps, uberjar
 
 ## Usage
 
-FIXME: explanation
+    $ java -jar sledge-0.1.0-standalone.jar 
 
-    $ java -jar sledge-0.1.0-standalone.jar [args]
+And point your web browser at http://lcoalhost:53281
 
-## Options
+## Copyright
 
-FIXME: listing of options this app accepts.
+Copyright © 2014 Daniel Barlow
 
-## Examples
+Distributed under the GNU Affero General Public License, which means
+this is free software but that if you run it for the benefit of people
+who are not you, you need to provide them a link to download what
+you're running.  
 
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
-## License
-
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+If that poses a problem for your preferred use case, I am happy to
+negotiate terms for alternative licencing arrangements.
