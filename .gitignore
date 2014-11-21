@@ -8,3 +8,5 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 *~
+/resources/out/
+/resources/production-out/

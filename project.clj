@@ -10,7 +10,31 @@
                  [http-kit "2.1.16"]
                  [ring "1.3.1"]
                  [org.clojure/data.json "0.2.5"]
+                 [org.clojure/clojurescript "0.0-2322"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [om "0.8.0-alpha2"]
                  [clucy "0.4.0"]]
+  :plugins [[lein-cljsbuild "1.0.3"]]
+  :hooks [leiningen.cljsbuild]
+  :cljsbuild {
+              :builds [{:id "dev"
+                        :source-paths ["src-cljs"]
+                        :compiler {
+                                   :output-to "resources/out/main.js"
+                                   :output-dir "resources/out"
+                                   :optimizations :none
+                                   :source-map true}}
+
+                       {:id "release"
+                        :source-paths ["src-cljs"]
+                        :compiler {
+                                   :output-to "resources/production-out/main.js"
+                                   :output-dir "resources/production-out"
+                                   :optimizations :advanced
+                                   :pretty-print false
+                                   :preamble ["react/react.min.js"]
+                                   :externs ["react/externs/react.js"]
+                                   }}]}
   :main ^:skip-aot sledge.core
   :resource-paths ["resources/"]
   :target-path "target/%s"
