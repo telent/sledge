@@ -11,7 +11,7 @@ net.
 
 Requires Leinigen. Clone the git repo, then
 
-$ lein do deps, uberjar
+    $ lein do deps, uberjar
 
 ## Usage
 
