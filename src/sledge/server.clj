@@ -10,27 +10,6 @@
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
-(defn head [title]
-  [:head
-   [:title (str/join " - " (filter identity [title "Sledge"]))]
-   [:link {:rel "stylesheet"
-           :type "text/css"
-           :href "/resources/css/sledge.css"
-           }]])
-
-(defn search-form [q]
-  [:form {:action "/"}
-   "Search " [:input {
-                      :type :text :size 60 :name "q" :value (or q "")}]
-   [:input {:type :submit :value "Go"}]])
-
-(defn artist-link [artist]
-  [:a {:href (str "/artist?artist=" (pr-str artist))} artist])
-
-(defn album-link [artist album]
-  [:a {:href (str "/album?artist=" (pr-str artist)
-                  "&album=" (pr-str album))}
-   album])
 
 (defn base64 [string]
   (Base64/encodeBase64URLSafeString (.getBytes string)))
@@ -99,44 +78,29 @@
      :body (json/write-str tracks)}))
 
 
-(defn format-result [r]
-  (let [artist (:artist r)
-        album (:album r)
-        title (:title r)
-        artist-l (artist-link artist)
-        album-l  (album-link (or (:album-artist r) (:artist r)) album)]
-    [:span {} artist-l " / " album-l " / " title]))
+(def scripts
+  {:dev ["http://fb.me/react-0.11.1.js",
+         "out/goog/base.js"
+         "out/main.js"]
+   :production ["production-out/main.js"]
+   })
 
 
 (defn front-page-view [req]
-  (let [q (get (:params req) "q" nil)]
-    [:html
-     (head nil)
-     [:body
-      [:h1 "Sledge"]
-      [:p "Lost in music"]
-      (search-form q)
-      (when q
-        [:ul
-         (map (fn [r] [:li (format-result r)])
-              (clucy/search search/index q 10))])]]))
+  [:html
+   [:head
+    [:title "Sledge"]
+    [:link {:rel "stylesheet"
+            :type "text/css"
+            :href "/resources/css/sledge.css"
+            }]]
+   [:body
+    [:div {:id "om-app"}]
+    (map (fn [url] [:script {:src url :type "text/javascript"}])
+         (:dev scripts))
+    [:script "goog.require(\"sledge.core\");"]
+    [:p "Lost in music"]]])
 
-(defn artist-view [req]
-  (let [tracks (search/search search/index {:artist (get (:params req) "artist")} 999)
-        artist (str/join " / " (sort (distinct (map :artist tracks))))
-        albums (sort (distinct (map :album tracks)))]
-    nil))
-
-(defn album-view [req]
-  (let [artist (get (:params req) "artist")
-        tracks (clucy/search
-                search/index
-                (str "album: " (pr-str (get (:params req) "album"))
-                     " AND (artist: " artist " OR album-artist: " artist ")")
-                999)
-        artists (distinct (map :artist tracks))
-        name (distinct (map :album tracks))]
-    nil))
 
 (defn ringo [view]
   (fn [req]
