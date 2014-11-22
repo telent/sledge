@@ -1,6 +1,7 @@
 ;;; -*- Clojure -*- mode
 (ns sledge.core
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
+  (:import [goog.net XhrIo])
   (:require [goog.events :as events]
             [clojure.string :as string]
             [cljs.core.async :as async :refer [>! <! put! chan]]
@@ -52,6 +53,14 @@
 
 (defn results-view [app owner]
   (reify
+    om/IWillMount
+    (will-mount [_]
+      (let [channel (om/get-state owner :new-results)]
+        (go (loop []
+              (let [tracks (<! channel)]
+                ;(println [:got :tracks tracks])
+                (om/update! app :results tracks)
+                (recur))))))
     om/IRenderState
     (render-state [this {:keys [enqueue]}]
       (apply dom/div nil
@@ -94,8 +103,17 @@
                            {:init-state {:dequeue dequeue}})
              ))))
 
-(defn handle-change [e owner {:keys [search-term]}]
-  (om/set-state! owner :search-term (.. e -target -value)))
+(defn handle-change [e owner {:keys [new-results search-term]}]
+  (let [term (.. e -target -value)]
+    (om/set-state! owner :search-term term)
+    (.send XhrIo (str "/tracks.json?artist=" term)
+           (fn [e]
+             (let [xhr (.-target e)
+                   o (.getResponseJson xhr)
+                   r (js->clj o)]
+               (println (keys (first r)))
+               (put! new-results r)))
+           "GET")))
 
 (defn player-view [app owner]
   (reify
@@ -103,6 +121,7 @@
     (init-state [_]
       {:enqueue (chan)
        :search-term ""
+       :new-results (chan)
        :dequeue (chan)})
     om/IRenderState
     (render-state [this state]
