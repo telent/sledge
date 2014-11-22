@@ -40,10 +40,14 @@
 (def encoding-types
   {"mp3" {:mime "audio/mpeg" :suffix "mp3" :transcode []}
    "FLAC 16 bits" {:mime "audio/flac" :suffix "flac" :transcode ["mp3"]}
+   "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))"
+   {:mime "audio/x-ms-asf" :suffix "asf" :transcode []}
    })
 
 (defn media-links [r]
-  (let [enc (get encoding-types (:encoding-type r))
+  (let [e-t (:encoding-type r)
+        enc (or (get encoding-types e-t)
+                (throw (Exception. (str "unsupported encoding-type " e-t))))
         basename (base64 (:pathname r))]
     (reduce (fn [h fmt]
               (assoc h fmt { "href" (str "/bits/" basename "."  fmt)}))
