@@ -16,6 +16,13 @@ div.tracks {
 div.tracks div.track {
     display: table-row;
 }
+
+div.tracks div.header {
+    font-weight: bold;
+}
+div.tracks div.header span {
+    border-bottom: 3px;
+}
 div.tracks div.track span {
     display: table-cell;
     padding: 0 2em 0 0;

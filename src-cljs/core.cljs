@@ -58,9 +58,9 @@
     om/IRenderState
     (render-state [this {:keys [dequeue]}]
       (dom/div #js {:className "track"}
-               (dom/span #js {:className "title"} (get track "title"))
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
+               (dom/span #js {:className "title"} (get track "title"))
                (dom/button #js {:onClick (fn [e] (put! dequeue @track))}
                            "-")))))
 
@@ -84,6 +84,14 @@
     om/IRenderState
     (render-state [this {:keys [dequeue]}]
       (apply dom/div #js {:className "queue tracks"}
+             (dom/div #js {:className "track header"}
+                      (dom/span #js {:className "artist"} "Artist")
+                      (dom/span #js {:className "album"} "Album" )
+                      (dom/span #js {:className "title"} "Title")
+                      (dom/button #js {:onClick
+                                       (fn [e] (doall (map #(put! dequeue %)
+                                                           (:player-queue @app))))}
+                                  "-"))
              (om/build-all queue-track-view (:player-queue app)
                            {:init-state {:dequeue dequeue}})
              ))))
