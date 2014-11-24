@@ -41,3 +41,5 @@ footer {
 audio {
     margin-top: 1em;
 }
+
+input#search-term { font-size: 14pt; }
