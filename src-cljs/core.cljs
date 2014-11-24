@@ -58,7 +58,6 @@
       (let [channel (om/get-state owner :new-results)]
         (go (loop []
               (let [tracks (<! channel)]
-                ;(println [:got :tracks tracks])
                 (om/update! app :results tracks)
                 (recur))))))
     om/IRenderState
@@ -111,9 +110,16 @@
              (let [xhr (.-target e)
                    o (.getResponseJson xhr)
                    r (js->clj o)]
-               (println (keys (first r)))
                (put! new-results r)))
            "GET")))
+
+(defn best-media-url [r]
+  (println [:best-for r])
+  (let [urls (get r "_links")]
+    (get
+     (or (get urls "ogg") (get urls "mp3"))
+     "href")))
+
 
 (defn player-view [app owner]
   (reify
@@ -125,18 +131,23 @@
        :dequeue (chan)})
     om/IRenderState
     (render-state [this state]
-      (dom/div nil
-               (dom/h2 nil "search")
-               (dom/input #js {:ref "search-term"
-                               :type "text"
-                               :value (:search-term state)
-                               :onChange #(handle-change % owner state)
-                               })
-               (dom/h2 nil "results")
-               (om/build results-view app {:init-state state})
-               (dom/h2 nil "queue")
-               (om/build queue-view app {:init-state state})
-               ))))
+      (let [bits (best-media-url (first (:player-queue app)))]
+        (dom/div nil
+                 (dom/h2 nil "search")
+                 (dom/input #js {:ref "search-term"
+                                 :type "text"
+                                 :value (:search-term state)
+                                 :onChange #(handle-change % owner state)
+                                 })
+                 (dom/h2 nil "results")
+                 (om/build results-view app {:init-state state})
+                 (dom/h2 nil "queue")
+                 (om/build queue-view app {:init-state state})
+                 (dom/audio #js {:controls true
+                                 :autoplay true
+                                 :src bits
+                                 })
+                 )))))
 
 (defn init []
   (om/root player-view app-state

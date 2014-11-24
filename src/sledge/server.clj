@@ -38,8 +38,8 @@
 ;; JAudioTagger
 
 (def encoding-types
-  {"mp3" {:mime "audio/mpeg" :suffix "mp3" :transcode []}
-   "FLAC 16 bits" {:mime "audio/flac" :suffix "flac" :transcode ["mp3"]}
+  {"mp3" {:mime "audio/mpeg" :suffix "mp3" :transcode ["ogg"]}
+   "FLAC 16 bits" {:mime "audio/flac" :suffix "flac" :transcode ["mp3" "ogg"]}
    "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))"
    {:mime "audio/x-ms-asf" :suffix "asf" :transcode []}
    })
@@ -126,14 +126,42 @@
 
 ;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
 
-(defn maybe-transcode [pathname from to]
+(defn transcode-handler [request pathname]
+  (http/with-channel request channel
+    (let [ogg-stream (sledge.transcode/to-ogg pathname)
+          buf (byte-array (* 20 1024))]
+      (http/send! channel
+                  {:status 200 :headers {"content-type" "audio/ogg"}}
+                  false)
+      (loop [tot 0]
+        (let [bytes-read (.read ogg-stream buf 0
+                                (* 10 1024) #_(.available ogg-stream))]
+          (println bytes-read)
+          (cond (> bytes-read 0)
+                (and
+                 (http/send!
+                  channel
+                  (java.nio.ByteBuffer/wrap buf 0 bytes-read)
+                  false)
+                 (recur (+ tot bytes-read)))
+                (= bytes-read 0)
+                (recur tot)
+                :else
+                (do (println ["sent " tot])
+                    (http/close channel))))))))
+
+
+(defn maybe-transcode [req pathname from to]
   (let [from (:suffix (get encoding-types from))
         mime-type (mime-type-for-ext to)]
-    (if (= from to)
-      {:status 200 :headers {"content-type" mime-type}
-       :body (clojure.java.io/file pathname)}
-      {:status 404 :headers {"content-type" "text/plain"}
-       :body "transcoding not implemented"})))
+    (cond (= from to)
+          {:status 200 :headers {"content-type" mime-type}
+           :body (clojure.java.io/file pathname)}
+          (= to "ogg")
+          (transcode-handler req pathname)
+          :else
+          {:status 404 :headers {"content-type" "text/plain"}
+           :body "transcoding not implemented"})))
 
 (defn bits-handler [req]
   (let [urlpath (str/split (:uri req) #"/")
@@ -144,7 +172,7 @@
     (if-let [r (first (filter
                        #(= (:pathname %) real-pathname)
                        (search/search search/index {:pathname real-pathname} 100)))]
-      (maybe-transcode real-pathname (:encoding-type r) ext)
+      (maybe-transcode req real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
 
 (defn routes [req]
