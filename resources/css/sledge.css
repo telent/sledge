@@ -1,4 +1,36 @@
-// styling it out
-html {
-    background: green;
+
+body {
+    font-family: sans-serif;
+}
+
+h2 {
+    border-style: inset;
+    border-width: 1px;
+    padding: 0.1em;
+    color: #66a;
+}
+
+div.tracks {
+    display: table;
+}
+div.tracks div.track {
+    display: table-row;
+}
+div.tracks div.track span {
+    display: table-cell;
+    padding: 0 2em 0 0;
+}
+
+footer {
+    font-size: 90%;
+    line-height: 110%;
+    background-color: grey;
+    color: white;
+    padding: 0.3em 1em;
+    margin: 2em 0;
+    border-top-style: groove;
+}
+
+audio {
+    margin-top: 1em;
 }

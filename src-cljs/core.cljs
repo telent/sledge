@@ -9,35 +9,13 @@
             [om.dom :as dom :include-macros true]
             ))
 
-(.log js/console "hello 2")
-
 (enable-console-print!)
 
 (def app-state
   (atom
-    {:results
-     [{"artist" "Orbital"
-       "encoding-type" "mp3"
-       "title" "Belfast"
-       "album" "Live 1994-2004"
-       "_links" {
-                 "mp3" {"href" "http://localhost:53281/bits/L3Nydi9tZWRpYS9NdXNpYy9tcDMvYnktdGFnL29yYml0YWwvbGl2ZV9hdF9nbGFzdG9uYnVyeV8xOTk0LTIwMDQvMDQtYmVsZmFzdF9fMjAwMi5tcDM.mp3"}}
-       }
-      {
-       "encoding-type" "mp3",
-       "_links" {
-                 "mp3" {
-                        "href" "/bits/L3Nydi9tZWRpYS9NdXNpYy9tcDMvYnktdGFnL29yYml0YWwvYmx1ZV9hbGJ1bS8wMi1hY2lkX3BhbnRzLm1wMw.mp3"
-                        }
-                 },
-       "artist" "Orbital",
-       "title" "Acid Pants",
-       "year" "2004",
-       "album" "Blue Album",
-       "track" "2"
-       },]
+    {:results []
      :player-queue []
-     :search-term "artist: orbital"
+     :search-term ""
      }))
 
 (defn results-track-view [track owner]
@@ -62,7 +40,7 @@
                 (recur))))))
     om/IRenderState
     (render-state [this {:keys [enqueue]}]
-      (apply dom/div nil
+      (apply dom/div #js {:className "results tracks" }
              (om/build-all results-track-view (:results app)
                            {:init-state {:enqueue enqueue}})
              ))))
@@ -97,7 +75,7 @@
               (recur)))))
     om/IRenderState
     (render-state [this {:keys [dequeue]}]
-      (apply dom/div nil
+      (apply dom/div #js {:className "queue tracks"}
              (om/build-all queue-track-view (:player-queue app)
                            {:init-state {:dequeue dequeue}})
              ))))
@@ -114,7 +92,6 @@
            "GET")))
 
 (defn best-media-url [r]
-  (println [:best-for r])
   (let [urls (get r "_links")]
     (get
      (or (get urls "ogg") (get urls "mp3"))
@@ -144,7 +121,7 @@
                  (dom/h2 nil "queue")
                  (om/build queue-view app {:init-state state})
                  (dom/audio #js {:controls true
-                                 :autoplay true
+                                 :autoPlay true
                                  :src bits
                                  })
                  )))))

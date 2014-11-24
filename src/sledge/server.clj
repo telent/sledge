@@ -96,14 +96,21 @@
     [:title "Sledge"]
     [:link {:rel "stylesheet"
             :type "text/css"
-            :href "/resources/css/sledge.css"
+            :href "/css/sledge.css"
             }]]
    [:body
     [:div {:id "om-app"}]
     (map (fn [url] [:script {:src url :type "text/javascript"}])
          (:dev scripts))
     [:script "goog.require(\"sledge.core\");"]
-    [:p "Lost in music"]]])
+    [:footer {}
+     [:p "Site Copyright &copy; 2014 Daniel Barlow.  Sledge is distributed under the terms of the "
+      [:a {:href "http://www.gnu.org/licenses/agpl.html"}
+       "GNU Affero General Public Licence"]
+      ".  You can download it from "
+      [:a {:href "http://github.com/telent/sledge"}
+       "Github"] "."]]
+    ]])
 
 
 (defn ringo [view]
