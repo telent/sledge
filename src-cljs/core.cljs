@@ -117,8 +117,30 @@
      (or (get urls "ogg") (get urls "mp3"))
      "href")))
 
-
 (defn player-view [app owner]
+  (reify
+    om/IDidMount
+    (did-mount [this]
+      (let [el (om/get-node owner)]
+        ;; last arg "true" is cos audio events don't bubble
+        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
+        (.addEventListener el
+                           "ended"
+                           #(put! (om/get-state owner :dequeue)
+                                  (first (:player-queue @app)))
+                           true)))
+    om/IRenderState
+    (render-state [this state]
+      (let [bits (best-media-url (first (:player-queue app)))]
+        (dom/div nil
+                 (dom/audio #js {:controls true
+                                 :autoPlay true
+                                 :ref "player"
+                                 :src bits
+                                 })
+                 )))))
+
+(defn app-view [app owner]
   (reify
     om/IInitState
     (init-state [_]
@@ -132,6 +154,7 @@
         (dom/div nil
                  (dom/h2 nil "search")
                  (dom/input #js {:ref "search-term"
+                                 :id "search-term"
                                  :type "text"
                                  :value (:search-term state)
                                  :onChange #(handle-change % owner state)
@@ -140,14 +163,13 @@
                  (om/build results-view app {:init-state state})
                  (dom/h2 nil "queue")
                  (om/build queue-view app {:init-state state})
-                 (dom/audio #js {:controls true
-                                 :autoPlay true
-                                 :src bits
-                                 })
+                 (om/build player-view app {:init-state state})
                  )))))
 
 (defn init []
-  (om/root player-view app-state
-           {:target (. js/document (getElementById "om-app"))}))
+  (let [el (. js/document (getElementById "om-app"))]
+    (om/root app-view app-state
+             {:target el})))
+
 
 (.addEventListener js/window "load" init)
