@@ -58,7 +58,9 @@
  (=
   (media-links {:encoding-type "FLAC 16 bits"
                 :pathname "/path/to/audio.flac"})
-  {"mp3" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3"}, "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
+  {"mp3" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3"},
+   "ogg" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg"},
+   "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
 
 (defn tracks-json [req]
   (let [p (:params req)
