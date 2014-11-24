@@ -5,7 +5,7 @@ files (e.g. ripped CDs) on the local network and/or the internet are
 either insanely complex or proprietary or sometimes both.  Which is odd given that HTTP is so eminently suited to schlepping bits across the net.
 
 Sledge is a spare-time/weekend hack to see if there's a simpler way.
-It uses [https://github.com/DanPallas/green-tags](green-tags) and [https://github.com/weavejester/clucy](clucy) to index your audio /linkmedia collection, embeds a web server that knows how to transcode it (requires [https://libav.org/](libav)) then provides a single-page JS (actually ClojureScript) app that lets you search it and play the music.
+It uses [green-tags](https://github.com/DanPallas/green-tags) and [clucy](https://github.com/weavejester/clucy) to index your audio media collection, embeds a web server that knows how to transcode it (requires [libav](https://libav.org/)) then provides a single-page JS (actually ClojureScript) app that lets you search it and play the music.
 
 Status: definitely early days, but works on my machine.  More or less.
 
