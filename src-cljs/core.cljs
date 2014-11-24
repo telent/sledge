@@ -36,8 +36,13 @@
     (will-mount [_]
       (let [channel (om/get-state owner :new-results)]
         (go (loop []
-              (let [tracks (<! channel)]
-                (om/update! app :results tracks)
+              (let [tracks (<! channel)
+                    sorted (sort-by
+                            #(vector (get % "artist")
+                                     (get % "album")
+                                     (js/parseInt (get % "track")))
+                            tracks)]
+                (om/update! app :results (vec sorted))
                 (recur))))))
     om/IRenderState
     (render-state [this {:keys [enqueue]}]
