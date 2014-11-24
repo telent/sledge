@@ -62,7 +62,7 @@
    "ogg" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg"},
    "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
 
-(defn tracks-json [req]
+(defn tracks-data [req]
   (let [p (:params req)
         fields [:artist :album :title :year :album-artist :track :genre
                 :encoding-type
@@ -76,12 +76,14 @@
                       fields)
         project (if-let [f (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
-                  #(assoc % "_links" (media-links %)))
-        tracks (distinct (map project
-                              (search/search search/index terms num-rows)))]
+                  #(assoc % "_links" (media-links %)))]
+    (distinct (map project
+                   (search/search search/index terms num-rows)))))
+
+(defn tracks-json-handler [req]
     {:status 200
      :headers {"Content-type" "text/json"}
-     :body (json/write-str tracks)}))
+     :body (json/write-str (tracks-data req))})
 
 
 (def scripts
@@ -187,7 +189,7 @@
 (defn routes [req]
   (let [u (:uri req)]
     (cond
-     (.startsWith u "/tracks.json") (tracks-json req)
+     (.startsWith u "/tracks.json") (tracks-json-handler req)
      (.startsWith u "/bits/") (bits-handler req)
      :else ((ringo front-page-view) req)
      )))
