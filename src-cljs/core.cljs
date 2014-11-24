@@ -23,9 +23,9 @@
     om/IRenderState
     (render-state [this {:keys [enqueue]}]
       (dom/div #js {:className "track"}
-               (dom/span #js {:className "title"} (get track "title"))
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
+               (dom/span #js {:className "title"} (get track "title"))
                (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
                            "+")))))
 
@@ -41,6 +41,14 @@
     om/IRenderState
     (render-state [this {:keys [enqueue]}]
       (apply dom/div #js {:className "results tracks" }
+             (dom/div #js {:className "track header"}
+                      (dom/span #js {:className "artist"} "Artist")
+                      (dom/span #js {:className "album"} "Album" )
+                      (dom/span #js {:className "title"} "Title")
+                      (dom/button #js {:onClick
+                                       (fn [e] (doall (map #(put! enqueue %)
+                                                           (:results @app))))}
+                                  "+"))
              (om/build-all results-track-view (:results app)
                            {:init-state {:enqueue enqueue}})
              ))))
