@@ -1,10 +1,11 @@
 (ns sledge.server
   (:require [sledge.search :as search]
+            [sledge.transcode :as transcode]
             [clucy.core :as clucy]
             [hiccup.core :as h]
             [clojure.string :as str]
             [clojure.data.json :as json]
-            [org.httpkit.server :as http]
+            [aleph.http :as http]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
             )
@@ -137,9 +138,10 @@
 
 ;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
 
+#_
 (defn transcode-handler [request pathname]
   (http/with-channel request channel
-    (let [ogg-stream (sledge.transcode/to-ogg pathname)
+    (let [ogg-stream (transcode/to-ogg pathname)
           buf (byte-array (* 20 1024))]
       (http/send! channel
                   {:status 200 :headers {"content-type" "audio/ogg"}}
@@ -161,6 +163,7 @@
                 (do (println ["sent " tot])
                     (http/close channel))))))))
 
+(defn transcode-handler [request pathname] )
 
 (defn maybe-transcode [req pathname from to]
   (let [from (:suffix (get encoding-types from))
@@ -190,7 +193,7 @@
   (let [u (:uri req)]
     (cond
      (.startsWith u "/tracks.json") (tracks-json-handler req)
-     (.startsWith u "/bits/") (bits-handler req)
+;;     (.startsWith u "/bits/") (bits-handler req)
      :else ((ringo front-page-view) req)
      )))
 
@@ -205,4 +208,5 @@
 
 (defn start []
   (stop-server)
-  (reset! server (http/run-server #'app {:port 53281})))
+  (reset! server (http/start-server #'app {:port 53281}))
+)

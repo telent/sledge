@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [green-tags "0.3.0-alpha"]
                  [hiccup "1.0.5"]
-                 [http-kit "2.1.16"]
+                 [aleph "0.4.0-alpha9"]
                  [ring "1.3.1"]
                  [org.clojure/data.json "0.2.5"]
                  [org.clojure/clojurescript "0.0-2322"]
