@@ -16,8 +16,6 @@
                    "-c"
                    "libvorbis"
                    "pipe:"])
-                 ;(into-array [])                     ;env
-                 ;(clojure.java.io/file "/tmp") ;cwd
                  )
         out (.getInputStream p)         ; my in is your out
         err (.getErrorStream p)]

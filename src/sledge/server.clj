@@ -2,10 +2,12 @@
   (:require [sledge.search :as search]
             [sledge.transcode :as transcode]
             [clucy.core :as clucy]
+            [clojure.core.async :as async]
             [hiccup.core :as h]
             [clojure.string :as str]
             [clojure.data.json :as json]
             [aleph.http :as http]
+            [manifold.stream :as manifold]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
             )
@@ -136,34 +138,31 @@
 (defn mime-type-for-ext [ext]
   (get mime-types (.toLowerCase ext)))
 
-;; avconv -i /srv/media/Music/flac/Delerium-Karma\ Disc\ 1/04.Silence.flac -f mp3 pipe: |cat > s.mp3
+(defn transcode-chan [pathname]
+  (let [transcode-stream (transcode/to-ogg pathname)
+        chan (async/chan)
+        thr (future
+              (let [buf (byte-array 4096)]
+                (with-open [writer (java.io.FileOutputStream. "/tmp/y.ogg")]
+                  (loop []
+                    (let [w (.read transcode-stream buf)]
+                      (cond (> w 0)
+                            (do
+                              (.write writer buf 0 w)
+                              (async/>!!
+                               chan
+                               (java.util.Arrays/copyOf buf w))
+                              (recur))
+                            (< w 0)
+                            (async/close! chan))))
+                  (println "done with " pathname))))]
+    chan))
 
-#_
 (defn transcode-handler [request pathname]
-  (http/with-channel request channel
-    (let [ogg-stream (transcode/to-ogg pathname)
-          buf (byte-array (* 20 1024))]
-      (http/send! channel
-                  {:status 200 :headers {"content-type" "audio/ogg"}}
-                  false)
-      (loop [tot 0]
-        (let [bytes-read (.read ogg-stream buf 0
-                                (* 10 1024) #_(.available ogg-stream))]
-          (println bytes-read)
-          (cond (> bytes-read 0)
-                (and
-                 (http/send!
-                  channel
-                  (java.nio.ByteBuffer/wrap buf 0 bytes-read)
-                  false)
-                 (recur (+ tot bytes-read)))
-                (= bytes-read 0)
-                (recur tot)
-                :else
-                (do (println ["sent " tot])
-                    (http/close channel))))))))
-
-(defn transcode-handler [request pathname] )
+  {:status 200
+   :headers {"content-type" "audio/ogg"
+             "x-hello" "goodbye"}
+   :body (manifold/->source (transcode-chan pathname))})
 
 (defn maybe-transcode [req pathname from to]
   (let [from (:suffix (get encoding-types from))
@@ -189,11 +188,12 @@
       (maybe-transcode req real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
 
+
 (defn routes [req]
   (let [u (:uri req)]
     (cond
      (.startsWith u "/tracks.json") (tracks-json-handler req)
-;;     (.startsWith u "/bits/") (bits-handler req)
+     (.startsWith u "/bits/") (bits-handler req)
      :else ((ringo front-page-view) req)
      )))
 
