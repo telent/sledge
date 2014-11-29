@@ -50,7 +50,11 @@
 (defn media-links [r]
   (let [e-t (:encoding-type r)
         enc (or (get encoding-types e-t)
-                (throw (Exception. (str "unsupported encoding-type " e-t))))
+                (throw (Exception. (str "unsupported encoding-type "
+                                        e-t
+                                        " for "
+                                        (:pathname r)
+                                        ))))
         basename (base64 (:pathname r))]
     (reduce (fn [h fmt]
               (assoc h fmt { "href" (str "/bits/" basename "."  fmt)}))
