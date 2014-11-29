@@ -18,6 +18,15 @@
      :search-term ""
      }))
 
+(defn mmss [seconds]
+  (let [m (quot seconds 60)
+        s (- seconds (* 60 m))]
+    (str m ":" (.substr (str "000" s) -2))))
+
+
+#_(println (mmss 20) (mmss 40) (mmss 60) (mmss 80)
+         (mmss 200) (mmss 4000) (mmss 6000) (mmss 381))
+
 (defn results-track-view [track owner]
   (reify
     om/IRenderState
@@ -25,8 +34,9 @@
       (dom/div #js {:className "track"}
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
-               (dom/span #js {:className "title"} (get track "title"))
-               (dom/span #js {:className "duration"} (get track "length"))
+               (dom/span #js {:className "title"}
+                         (str (get track "track") " - " (get track "title")))
+               (dom/span #js {:className "duration"} (mmss (get track "length")))
                (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
                            "+")))))
 
@@ -68,7 +78,7 @@
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
                (dom/span #js {:className "title"} (get track "title"))
-               (dom/span #js {:className "duration"} (get track "length"))
+               (dom/span #js {:className "duration"} (mmss (get track "length")))
                (dom/button #js {:onClick (fn [e] (put! dequeue @track))}
                            "-")))))
 
