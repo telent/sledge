@@ -91,7 +91,9 @@
         num-rows 50
         project (if-let [f (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
-                  #(assoc % "_links" (media-links %)))]
+                  #(assoc %
+                     "_score" (:_score (meta %))
+                     "_links" (media-links %)))]
     (distinct (map project
                    (clucy/search search/index query num-rows)))))
 
