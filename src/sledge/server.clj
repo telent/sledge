@@ -65,28 +65,36 @@
    "ogg" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg"},
    "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
 
-(defn tracks-data [req]
-  (let [p (:params req)
-        fields [:artist :album :title :year :album-artist :track :genre
+(defn query-for-request-params [params]
+  (let [fields [:artist :album :title :year :album-artist :track :genre
                 :encoding-type
                 :length]
-        num-rows 50
         terms (reduce (fn [terms k]
-                        (if-let [v (get p (name k))]
+                        (if-let [v (get params (name k))]
                           (assoc terms k v)
                           terms))
                       {}
-                      fields)
+                      fields)]
+    (search/stringize-search-map terms)))
+
+;;  curl -v -XPOST -H'content-type: text/plain' --data-binary 'rhye' http://localhost:53281/tracks.json
+
+(defn tracks-data [req]
+  (let [p (:params req)
+        query (if (= (:request-method req) :get)
+                (query-for-request-params p)
+                (slurp (:body req)))
+        num-rows 50
         project (if-let [f (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
                   #(assoc % "_links" (media-links %)))]
     (distinct (map project
-                   (search/search search/index terms num-rows)))))
+                   (clucy/search search/index query num-rows)))))
 
 (defn tracks-json-handler [req]
-    {:status 200
-     :headers {"Content-type" "text/json"}
-     :body (json/write-str (tracks-data req))})
+  {:status 200
+   :headers {"Content-type" "text/json"}
+   :body (json/write-str (tracks-data req))})
 
 
 (def scripts

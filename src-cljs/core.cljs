@@ -118,13 +118,16 @@
 (defn handle-change [e owner {:keys [new-results search-term]}]
   (let [term (.. e -target -value)]
     (om/set-state! owner :search-term term)
-    (.send XhrIo (str "/tracks.json?artist=" term)
+    (.send XhrIo "/tracks.json"
            (fn [e]
              (let [xhr (.-target e)
                    o (.getResponseJson xhr)
                    r (js->clj o)]
                (put! new-results r)))
-           "GET")))
+           "POST"
+           term
+           {"Content-Type" "text/plain"}
+           )))
 
 (defn best-media-url [r]
   (let [urls (get r "_links")]
