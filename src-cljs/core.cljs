@@ -31,13 +31,16 @@
 (defn results-track-view [track owner]
   (reify
     om/IRenderState
-    (render-state [this {:keys [enqueue filters]}]
+    (render-state [this {:keys [enqueue update-filters]}]
       (dom/div #js {:className "track"}
                (dom/span #js {:className "artist"
-                              :onClick #(put! filters {:artist (get @track "artist")})}
+                              :onClick #(put! update-filters
+                                              {:artist (get @track "artist")})}
                          (get track "artist"))
                (dom/span #js {:className "album"
-                              :onClick #(put! filters {:artist (get @track "artist") :album (get @track "album")})}
+                              :onClick #(put! update-filters
+                                              {:artist (get @track "artist")
+                                               :album (get @track "album")})}
                          (get track "album" ))
                (dom/span #js {:className "title"}
                          (str (get track "track") " - " (get track "title")))
@@ -60,7 +63,7 @@
                 (om/update! app :results (vec sorted))
                 (recur))))))
     om/IRenderState
-    (render-state [this {:keys [enqueue filters]}]
+    (render-state [this {:keys [enqueue update-filters]}]
       (apply dom/div #js {:className "results tracks" }
              (dom/div #js {:className "track header"}
                       (dom/span #js {:className "artist"} "Artist")
@@ -73,28 +76,9 @@
                                   "+"))
              (om/build-all results-track-view (:results app)
                            {:init-state
-                            {:filters filters
+                            {:update-filters update-filters
                              :enqueue enqueue}})
              ))))
-
-(defn filters-view [filters owner]
-  (reify
-    om/IWillMount
-    (will-mount [_]
-      (let [channel (om/get-state owner :channel)]
-        (go (loop []
-              (let [new-filter (<! channel)]
-                (om/transact! filters #(merge % new-filter))
-                (recur))))))
-    om/IRenderState
-    (render-state [this {:keys [channel]}]
-      (println filters channel)
-      (apply dom/div #js {:className "filters" }
-             (map #(dom/span #js {:className "filter"
-                                  :onClick
-                                  (fn [e] (put! channel {(first %) nil}))}
-                             (str (name (first %)) ": " (second  %)))
-                  (filter second filters))))))
 
 (defn queue-track-view [track owner]
   (reify
@@ -141,8 +125,12 @@
                            {:init-state {:dequeue dequeue}})
              ))))
 
-(defn send-query [term channel]
-  (.send XhrIo "/tracks.json"
+(defn query-string-for-map [h]
+  (string/join "&"
+            (map (fn [[k v]] (str (name k) "=" v)) h)))
+
+(defn send-query [term filters channel]
+  (.send XhrIo (string/join "?" ["/tracks.json" (query-string-for-map filters)])
          (fn [e]
            (let [xhr (.-target e)
                  o (.getResponseJson xhr)
@@ -153,10 +141,45 @@
          {"Content-Type" "text/plain"}
          ))
 
-(defn handle-change [e owner {:keys [new-results search-term]}]
-  (let [term (.. e -target -value)]
+(defn send-search-xhr [term owner {:keys [new-results search-term]}]
+  (let [filters (:filters @app-state)]
     (om/set-state! owner :search-term term)
-    (send-query term new-results)))
+    (send-query term filters new-results)))
+
+(defn filters-view [app owner]
+  (reify
+    om/IWillMount
+    (will-mount [_]
+      (let [channel (om/get-state owner :update-filters)]
+        (go (loop []
+              (let [new-filter (<! channel)]
+                (println [:new-filter new-filter])
+                (om/transact! app [:filters] #(merge % new-filter))
+                (send-query
+                 (om/get-state owner :search-term)
+                 (:filters @app)
+                 (om/get-state owner :new-results))
+                (recur))))))
+    om/IRenderState
+    (render-state [this state]
+      (let [chan (:update-filters state)
+            filters (:filters app)]
+        (dom/div nil
+                 (dom/h2 nil "search")
+                 (dom/input #js {:ref "search-term"
+                                 :id "search-term"
+                                 :type "text"
+                                 :value (:search-term state)
+                                 :onChange #(send-search-xhr (.. % -target -value) owner state)
+                                 })
+
+                 (apply dom/div #js {:className "filters" }
+                        (map #(dom/span #js {:className "filter"
+                                             :onClick
+                                             (fn [e] (put! chan
+                                                           {(first %) nil}))}
+                                        (str (name (first %)) ": " (second  %)))
+                             (filter second filters))))))))
 
 (defn best-media-url [r]
   (let [urls (get r "_links")]
@@ -194,21 +217,14 @@
       {:enqueue (chan)
        :search-term ""
        :new-results (chan)
-       :filters (chan)
+       :update-filters (chan)
        :dequeue (chan)})
     om/IRenderState
     (render-state [this state]
       (let [bits (best-media-url (first (:player-queue app)))]
         (dom/div nil
-                 (dom/h2 nil "search")
-                 (dom/input #js {:ref "search-term"
-                                 :id "search-term"
-                                 :type "text"
-                                 :value (:search-term state)
-                                 :onChange #(handle-change % owner state)
-                                 })
-                 (om/build filters-view (:filters app)
-                           {:init-state {:channel (:filters state)}})
+                 (om/build filters-view app
+                           {:init-state state})
                  (dom/h2 nil "results")
                  (om/build results-view app {:init-state state})
                  (dom/h2 nil "queue")
