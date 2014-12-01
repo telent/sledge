@@ -79,15 +79,21 @@
                           terms))
                       {}
                       fields)]
-    (search/stringize-search-map terms)))
+    (and (first terms) (search/stringize-search-map terms))))
 
 ;;  curl -v -XPOST -H'content-type: text/plain' --data-binary 'rhye' http://localhost:53281/tracks.json
 
 (defn tracks-data [req]
   (let [p (:params req)
-        query (if (= (:request-method req) :get)
-                (query-for-request-params p)
-                (slurp (:body req)))
+        filters (query-for-request-params p)
+        query (str "("
+                   (or (and (= (:request-method req) :post)
+                            (:body req)
+                            (slurp (:body req)))
+                       "TRUE")
+                   ") AND ("
+                   (or filters " TRUE ")
+                   ")")
         num-rows 50
         project (if-let [f (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
