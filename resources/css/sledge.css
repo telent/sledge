@@ -28,12 +28,21 @@ div.tracks div.track span {
     padding: 0 2em 0 0;
 }
 
+div.filters {margin: 1em 0}
+
 div.filters span.filter {
     border: 1px solid grey;
-    background-color: yellow;
+    background-color: #FCE6C9;
     font-size: 80%;
     margin-right: 1em;
+    padding: 0.3em;
+    font-weight: bold;
 }
+div.filters span.filter:after {
+    content: "\2a2f";
+    margin-left: 0.5em;
+}
+
 
 footer {
     font-size: 90%;
