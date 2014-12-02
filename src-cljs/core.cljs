@@ -87,7 +87,7 @@
           (apply dom/div #js {:className "results tracks" }
                  (dom/div #js {:className "track"}
                           (dom/span {:id "queue-all-tracks"}
-                                    "Queue all tracks"}
+                                    "Queue all tracks")
                           button)
                  track-components)
           (apply dom/div #js {:className "results tracks" }
@@ -231,6 +231,13 @@
                                  })
                  )))))
 
+(defn detect-platform []
+  (let [w (.-innerWidth js/window)]
+    (condp > w
+      480 :phone
+      600 :tablet
+      :desktop)))
+
 (defn app-view [app owner]
   (reify
     om/IInitState
@@ -242,21 +249,15 @@
        :dequeue (chan)})
     om/IRenderState
     (render-state [this state]
-      (let [bits (best-media-url (first (:player-queue app)))
-            w (.-innerWidth js/window)]
-        (om/update! app :device-type (condp > w
-                                       480 :phone
-                                       600 :tablet
-                                       :desktop))
-        (dom/div nil
-                 (om/build filters-view app
-                           {:init-state state})
-                 (dom/h2 nil "results")
-                 (om/build results-view app {:init-state state})
-                 (dom/h2 nil "queue")
-                 (om/build queue-view app {:init-state state})
-                 (om/build player-view app {:init-state state})
-                 )))))
+      (dom/div nil
+               (om/build filters-view app
+                         {:init-state state})
+               (dom/h2 nil "results")
+               (om/build results-view app {:init-state state})
+               (dom/h2 nil "queue")
+               (om/build queue-view app {:init-state state})
+               (om/build player-view app {:init-state state})
+               ))))
 
 (defn init []
   (let [el (. js/document (getElementById "om-app"))]
