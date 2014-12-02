@@ -24,9 +24,6 @@ body {
 	background-position: right center;
 	background-repeat: no-repeat;
     }
-    h1#sledge input#search-term:placeholder {
-	font-size: 15px;
-    }
     input#search-term:before {
         content: "Q";
     }
