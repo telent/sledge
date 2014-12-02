@@ -11,12 +11,16 @@
 
 (enable-console-print!)
 
+(defn mobile? [owner]
+  (= (om/get-shared owner :device-type) :phone))
+
 (def app-state
   (atom
     {:results []
      :player-queue []
      :filters {}
      :search-term ""
+     :device-type nil
      }))
 
 (defn mmss [seconds]
@@ -32,21 +36,26 @@
   (reify
     om/IRenderState
     (render-state [this {:keys [enqueue update-filters]}]
-      (dom/div #js {:className "track"}
-               (dom/span #js {:className "artist"
-                              :onClick #(put! update-filters
-                                              {:artist (get @track "artist")})}
-                         (get track "artist"))
-               (dom/span #js {:className "album"
-                              :onClick #(put! update-filters
-                                              {:artist (get @track "artist")
-                                               :album (get @track "album")})}
-                         (get track "album" ))
-               (dom/span #js {:className "title"}
-                         (str (get track "track") " - " (get track "title")))
-               (dom/span #js {:className "duration"} (mmss (get track "length")))
-               (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
-                           "+")))))
+      (let [artist (dom/span
+                    #js {:className "artist"
+                         :onClick #(put! update-filters
+                                         {:artist (get @track "artist")})}
+                    (get track "artist"))
+            album (dom/span
+                   #js {:className "album"
+                        :onClick #(put! update-filters
+                                        {:artist (get @track "artist")
+                                         :album (get @track "album")})}
+                   (get track "album" ))
+            title (dom/span #js {:className "title"}
+                            (str (get track "track") " - " (get track "title")))
+            duration (dom/span #js {:className "duration"} (mmss (get track "length")))
+            button (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
+                               "+")]
+        (apply dom/div #js {:className "track"}
+               (if (mobile? owner)
+                 [title artist album duration button]
+                 [artist album title duration button]))))))
 
 (defn results-view [app owner]
   (reify
@@ -64,21 +73,33 @@
                 (recur))))))
     om/IRenderState
     (render-state [this {:keys [enqueue update-filters]}]
-      (apply dom/div #js {:className "results tracks" }
-             (dom/div #js {:className "track header"}
-                      (dom/span #js {:className "artist"} "Artist")
-                      (dom/span #js {:className "album"} "Album" )
-                      (dom/span #js {:className "title"} "Title")
-                      (dom/span #js {:className "duration"} "Length")
-                      (dom/button #js {:onClick
-                                       (fn [e] (doall (map #(put! enqueue %)
-                                                           (:results @app))))}
-                                  "+"))
-             (om/build-all results-track-view (:results app)
-                           {:init-state
-                            {:update-filters update-filters
-                             :enqueue enqueue}})
-             ))))
+      (let [button (dom/button
+                    #js {:onClick
+                         (fn [e] (doall (map #(put! enqueue %)
+                                             (:results @app))))}
+                    "+")
+            track-components
+            (om/build-all results-track-view (:results app)
+                          {:init-state
+                           {:update-filters update-filters
+                            :enqueue enqueue}})]
+        (if (mobile? owner)
+          (apply dom/div #js {:className "results tracks" }
+                 (dom/div #js {:className "track"}
+                          (dom/span {:id "queue-all-tracks"}
+                                    "Queue all tracks"}
+                          button)
+                 track-components)
+          (apply dom/div #js {:className "results tracks" }
+                 (dom/div #js {:className "track header"}
+                          (dom/span #js {:className "artist"} "Artist")
+                          (dom/span #js {:className "album"} "Album" )
+                          (dom/span #js {:className "title"} "Title")
+                          (dom/span #js {:className "duration"} "Length")
+                          button)
+                 track-components))))
+    ))
+
 
 (defn queue-track-view [track owner]
   (reify
@@ -221,7 +242,12 @@
        :dequeue (chan)})
     om/IRenderState
     (render-state [this state]
-      (let [bits (best-media-url (first (:player-queue app)))]
+      (let [bits (best-media-url (first (:player-queue app)))
+            w (.-innerWidth js/window)]
+        (om/update! app :device-type (condp > w
+                                       480 :phone
+                                       600 :tablet
+                                       :desktop))
         (dom/div nil
                  (om/build filters-view app
                            {:init-state state})
@@ -235,7 +261,11 @@
 (defn init []
   (let [el (. js/document (getElementById "om-app"))]
     (om/root app-view app-state
-             {:target el})))
-
+             {:target el
+              :shared {:device-type
+                       (condp > (.-innerWidth js/window)
+                         480 :phone
+                         600 :tablet
+                         :desktop)}})))
 
 (.addEventListener js/window "load" init)

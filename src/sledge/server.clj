@@ -121,6 +121,7 @@
   [:html
    [:head
     [:title "Sledge"]
+    [:meta {:name "viewport" :content "initial-scale=1.0"}]
     [:link {:rel "stylesheet"
             :type "text/css"
             :href "/css/sledge.css"
