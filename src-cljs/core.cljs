@@ -186,14 +186,16 @@
       (let [chan (:update-filters state)
             filters (:filters app)]
         (dom/div nil
-                 (dom/h2 nil "search")
-                 (dom/input #js {:ref "search-term"
-                                 :id "search-term"
-                                 :type "text"
-                                 :value (:search-term state)
-                                 :onChange #(send-search-xhr (.. % -target -value) owner state)
-                                 })
-
+                 (dom/h1
+                  #js {:id "sledge"}
+                  "sledge"
+                  (dom/input #js {:ref "search-term"
+                                  :id "search-term"
+                                  :type "text"
+                                  :placeholder "Search artist/album/title"
+                                  :value (:search-term state)
+                                  :onChange #(send-search-xhr (.. % -target -value) owner state)
+                                  }))
                  (apply dom/div #js {:className "filters" }
                         (map #(dom/span #js {:className "filter"
                                              :onClick

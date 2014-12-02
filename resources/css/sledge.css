@@ -2,11 +2,30 @@
 body {
     font-family: sans-serif;
     font-size: 18px;
+    padding: 0; margin: 0;
 }
 
 @media screen and (max-width: 480px) {
-    input#search-term {
-        width: 100%;
+    h1#sledge { 
+	font-weight: normal;
+	background-color: #ddf;
+	font-size: 24px;
+	padding: 8px 5px; margin: 0;
+	text-shadow: #88d 2px 2px 4px;
+	height: 30px;
+	border-bottom: 1px inset blue;
+    }
+    h1#sledge input#search-term {
+        min-width: 60%;
+	height: 32px;
+	float: right;
+	font-size: 15px;
+	background-image: url(/images/search.png);
+	background-position: right center;
+	background-repeat: no-repeat;
+    }
+    h1#sledge input#search-term:placeholder {
+	font-size: 15px;
     }
     input#search-term:before {
         content: "Q";
