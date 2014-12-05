@@ -101,7 +101,7 @@
                      "_score" (:_score (meta %))
                      "_links" (media-links %)))]
     (distinct (map project
-                   (clucy/search search/index query num-rows)))))
+                   (clucy/search @search/lucene query num-rows)))))
 
 (defn tracks-json-handler [req]
   {:status 200
@@ -206,7 +206,8 @@
     ;; XXX this *really* needs to be an exact match
     (if-let [r (first (filter
                        #(= (:pathname %) real-pathname)
-                       (search/search search/index {:pathname real-pathname} 100)))]
+                       (search/search @search/lucene
+                                      {:pathname real-pathname} 100)))]
       (maybe-transcode req real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
 
@@ -223,12 +224,7 @@
 
 (defonce server (atom nil))
 
-(defn stop-server []
-  (when-not (nil? @server)
-    (@server :timeout 100)
-    (reset! server nil)))
-
-(defn start []
-  (stop-server)
-  (reset! server (http/start-server #'app {:port 53281}))
-)
+(defn start [options]
+  (let [opts (merge {:port 53281} options)]
+    (println [:opts opts])
+    (reset! server (http/start-server #'app opts))))

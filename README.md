@@ -11,13 +11,27 @@ Status: definitely early days, but works on my machine.  More or less.
 
 ## Building
 
-Requires Leinigen. Clone the git repo, then
+Requires Leiningen. Clone the git repo, then
 
-    $ lein do deps, uberjar
+    $ lein uberjar
 
 ## Usage
 
-    $ java -jar sledge-0.1.0-standalone.jar 
+First create a configuration file to tell it where your music collection is and where to create its index files
+
+```
+$ cat sledge.conf.edn
+{:index "/srv/media/.sledge/"
+ :folders ["/srv/media/Music/"]
+ :port 53281
+}
+```
+
+Then invoke the jar file as follows
+
+```
+$ java -jar target/uberjar/sledge-0.1.0-SNAPSHOT-standalone.jar sledge.conf.edn
+```
 
 And point your web browser at http://localhost:53281
 
