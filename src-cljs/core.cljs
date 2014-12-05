@@ -11,8 +11,15 @@
 
 (enable-console-print!)
 
-(defn mobile? [owner]
-  (= (om/get-shared owner :device-type) :phone))
+(defn detect-platform []
+  (let [w (.-innerWidth js/window)]
+    (condp > w
+      480 :phone
+      600 :tablet
+      :desktop)))
+
+(defn mobile? []
+  (= (detect-platform) :phone))
 
 (def app-state
   (atom
@@ -53,7 +60,7 @@
             button (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
                                "+")]
         (apply dom/div #js {:className "track"}
-               (if (mobile? owner)
+               (if (mobile?)
                  [title artist album duration button]
                  [artist album title duration button]))))))
 
@@ -83,7 +90,7 @@
                           {:init-state
                            {:update-filters update-filters
                             :enqueue enqueue}})]
-        (if (mobile? owner)
+        (if (mobile?)
           (apply dom/div #js {:className "results tracks" }
                  (dom/div #js {:className "track"}
                           (dom/span {:id "queue-all-tracks"}
@@ -232,13 +239,6 @@
                                  :src bits
                                  })
                  )))))
-
-(defn detect-platform []
-  (let [w (.-innerWidth js/window)]
-    (condp > w
-      480 :phone
-      600 :tablet
-      :desktop)))
 
 (defn app-view [app owner]
   (reify
