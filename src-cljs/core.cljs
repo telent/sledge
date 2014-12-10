@@ -254,8 +254,8 @@
                (dom/h2 nil "results")
                (om/build results-view app {:init-state state})
                (dom/h2 nil "queue")
-               (om/build queue-view app {:init-state state})
-               (om/build player-view app )
+               (om/build queue-view app)
+               (om/build player-view app)
                ))))
 
 (defn init []
