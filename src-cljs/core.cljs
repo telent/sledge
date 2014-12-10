@@ -261,11 +261,6 @@
 (defn init []
   (let [el (. js/document (getElementById "om-app"))]
     (om/root app-view app-state
-             {:target el
-              :shared {:device-type
-                       (condp > (.-innerWidth js/window)
-                         480 :phone
-                         600 :tablet
-                         :desktop)}})))
+             {:target el})))
 
 (.addEventListener js/window "load" init)
