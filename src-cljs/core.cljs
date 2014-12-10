@@ -36,13 +36,16 @@
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
 
-(defn queue-track [track]
+(defn enqueue-track [track]
   (om/transact! (player-queue) #(conj % track)))
 
 (defn dequeue-track [index]
   (om/transact! (player-queue)
                 (fn [v] (vec (concat (subvec v 0 index)
                                      (subvec v (inc index)))))))
+
+(defn dequeue-all []
+  (om/transact! (player-queue) (fn [v] [])))
 
 (defn mmss [seconds]
   (let [m (quot seconds 60)
@@ -56,7 +59,7 @@
 (defn results-track-view [track owner]
   (reify
     om/IRenderState
-    (render-state [this {:keys [enqueue update-filters]}]
+    (render-state [this {:keys [update-filters]}]
       (let [artist (dom/span
                     #js {:className "artist"
                          :onClick #(put! update-filters
@@ -71,7 +74,7 @@
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
             duration (dom/span #js {:className "duration"} (mmss (get track "length")))
-            button (dom/button #js {:onClick #(queue-track @track)} "+")]
+            button (dom/button #js {:onClick #(enqueue-track @track)} "+")]
         (apply dom/div #js {:className "track"}
                (if (mobile?)
                  [title artist album duration button]
@@ -92,18 +95,17 @@
                 (om/update! app :results (vec sorted))
                 (recur))))))
     om/IRenderState
-    (render-state [this {:keys [enqueue update-filters]}]
-      (let [button (dom/button
+    (render-state [this {:keys [update-filters]}]
+      (let [tracks (om/observe owner (search-results))
+            button (dom/button
                     #js {:onClick
-                         (fn [e] (doall (map #(put! enqueue %)
-                                             (:results @app))))}
+                         (fn [e] (doall (map #(enqueue-track %)
+                                             tracks)))}
                     "+")
-            tracks (om/observe owner (search-results))
             track-components
             (om/build-all results-track-view tracks
                           {:init-state
-                           {:update-filters update-filters
-                            :enqueue enqueue}})]
+                           {:update-filters update-filters }})]
         (if (mobile?)
           (apply dom/div #js {:className "results tracks" }
                  (dom/div #js {:className "track"}
@@ -136,23 +138,8 @@
 
 (defn queue-view [app owner]
   (reify
-    om/IWillMount
-    (will-mount [_]
-      (let [enqueue (om/get-state owner :enqueue)
-            dequeue (om/get-state owner :dequeue)]
-        (go (loop []
-              (alt!
-               enqueue ([track]
-                          (om/transact! app :player-queue #(conj % track)))
-               ;; XXX dequeue really needs to work by position not contents
-               ;; so it can deal with duplicate playlist entries
-               dequeue ([track]
-                          (om/transact! app :player-queue
-                                        (fn [v] (vec (remove #(= track %)
-                                                             v))))))
-              (recur)))))
     om/IRenderState
-    (render-state [this {:keys [dequeue]}]
+    (render-state [this _]
       (let [queue (om/observe owner (player-queue))]
         (apply dom/div #js {:className "queue tracks"}
                (dom/div #js {:className "track header"}
@@ -160,10 +147,7 @@
                         (dom/span #js {:className "album"} "Album" )
                         (dom/span #js {:className "title"} "Title")
                         (dom/span #js {:className "duration"} "Length")
-                        (dom/button #js {:onClick
-                                         (fn [e] (doall (map #(put! dequeue %)
-                                                             (:player-queue @app))))}
-                                    "-"))
+                        (dom/button #js {:onClick #(dequeue-all)} "-"))
                (map #(om/build queue-track-view
                              %1
                              {:state {:index %2}})
@@ -241,11 +225,7 @@
       (let [el (om/get-node owner)]
         ;; last arg "true" is cos audio events don't bubble
         ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el
-                           "ended"
-                           #(put! (om/get-state owner :dequeue)
-                                  (first (:player-queue @app)))
-                           true)))
+        (.addEventListener el "ended" #(dequeue-track 0) true)))
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
