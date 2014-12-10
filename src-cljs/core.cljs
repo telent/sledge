@@ -138,8 +138,8 @@
 
 (defn queue-view [app owner]
   (reify
-    om/IRenderState
-    (render-state [this _]
+    om/IRender
+    (render [this]
       (let [queue (om/observe owner (player-queue))]
         (apply dom/div #js {:className "queue tracks"}
                (dom/div #js {:className "track header"}
@@ -242,11 +242,10 @@
   (reify
     om/IInitState
     (init-state [_]
-      {:enqueue (chan)
-       :search-term ""
+      {:search-term ""
        :new-results (chan)
        :update-filters (chan)
-       :dequeue (chan)})
+       })
     om/IRenderState
     (render-state [this state]
       (dom/div nil
