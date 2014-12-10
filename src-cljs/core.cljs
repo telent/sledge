@@ -36,6 +36,14 @@
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
 
+(defn queue-track [track]
+  (om/transact! (player-queue) #(conj % track)))
+
+(defn dequeue-track [index]
+  (om/transact! (player-queue)
+                (fn [v] (vec (concat (subvec v 0 index)
+                                     (subvec v (inc index)))))))
+
 (defn mmss [seconds]
   (let [m (quot seconds 60)
         s (- seconds (* 60 m))]
@@ -63,8 +71,7 @@
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
             duration (dom/span #js {:className "duration"} (mmss (get track "length")))
-            button (dom/button #js {:onClick (fn [e] (put! enqueue @track))}
-                               "+")]
+            button (dom/button #js {:onClick #(queue-track @track)} "+")]
         (apply dom/div #js {:className "track"}
                (if (mobile?)
                  [title artist album duration button]
@@ -118,13 +125,13 @@
 (defn queue-track-view [track owner]
   (reify
     om/IRenderState
-    (render-state [this {:keys [dequeue]}]
+    (render-state [this {:keys [index]}]
       (dom/div #js {:className "track"}
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
                (dom/span #js {:className "title"} (get track "title"))
                (dom/span #js {:className "duration"} (mmss (get track "length")))
-               (dom/button #js {:onClick (fn [e] (put! dequeue @track))}
+               (dom/button #js {:onClick #(dequeue-track index)}
                            "-")))))
 
 (defn queue-view [app owner]
@@ -156,11 +163,12 @@
                         (dom/button #js {:onClick
                                          (fn [e] (doall (map #(put! dequeue %)
                                                              (:player-queue @app))))}
-                                  "-"))
-               (om/build-all queue-track-view
-                             queue
-                             {:init-state {:dequeue dequeue}})
-             )))))
+                                    "-"))
+               (map #(om/build queue-track-view
+                             %1
+                             {:state {:index %2}})
+                    queue (range 0 999))
+               )))))
 
 (defn query-string-for-map [h]
   (string/join "&"
@@ -243,8 +251,8 @@
       (let [queue (om/observe owner (player-queue))
         bits (best-media-url (first queue))]
         (dom/div nil
-                 (dom/audio #js {:controls true
-                                 :autoPlay true
+                 (dom/audio #js {:controls "controls"
+                                 :autoPlay "true"
                                  :ref "player"
                                  :src bits
                                  })
@@ -268,7 +276,7 @@
                (om/build results-view app {:init-state state})
                (dom/h2 nil "queue")
                (om/build queue-view app {:init-state state})
-               (om/build player-view app {:init-state state})
+               (om/build player-view app )
                ))))
 
 (defn init []
