@@ -238,8 +238,8 @@
                            #(put! (om/get-state owner :dequeue)
                                   (first (:player-queue @app)))
                            true)))
-    om/IRenderState
-    (render-state [this state]
+    om/IRender
+    (render [this]
       (let [queue (om/observe owner (player-queue))
         bits (best-media-url (first queue))]
         (dom/div nil
