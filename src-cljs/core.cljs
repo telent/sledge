@@ -70,7 +70,7 @@
                         :onClick #(put! update-filters
                                         {:artist (get @track "artist")
                                          :album (get @track "album")})}
-                   (get track "album" ))
+                   (get track "album"))
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
             duration (dom/span #js {:className "duration"} (mmss (get track "length")))
@@ -154,6 +154,7 @@
                     queue (range 0 999))
                )))))
 
+;; XXX need to do some url encoding here, I rather suspect
 (defn query-string-for-map [h]
   (string/join "&"
             (map (fn [[k v]] (str (name k) "=" v)) h)))
@@ -249,8 +250,7 @@
     om/IRenderState
     (render-state [this state]
       (dom/div nil
-               (om/build filters-view app
-                         {:init-state state})
+               (om/build filters-view app {:init-state state})
                (dom/h2 nil "results")
                (om/build results-view app {:init-state state})
                (dom/h2 nil "queue")
