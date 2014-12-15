@@ -80,13 +80,29 @@
                  [title artist album duration button]
                  [artist album title duration button]))))))
 
+
+(defn xhr-search [term]
+  (let [channel (chan)]
+    (.send XhrIo (string/join "?" ["/tracks.json" ])
+           (fn [e]
+             (let [xhr (.-target e)
+                   o (.getResponseJson xhr)
+                   r (js->clj o)]
+               (put! channel r)))
+           "POST"
+           term
+           {"Content-Type" "text/plain"}
+           )
+    channel))
+
 (defn results-view [app owner]
   (reify
     om/IWillMount
     (will-mount [_]
-      (let [channel (om/get-state owner :new-results)]
+      (let [channel (om/get-shared owner :search-channel)]
         (go (loop []
-              (let [tracks (<! channel)
+              (let [search-for (<! channel)
+                    tracks (<! (xhr-search search-for))
                     sorted (sort-by
                             #(vector (get % "artist")
                                      (get % "album")
@@ -155,27 +171,6 @@
                )))))
 
 ;; XXX need to do some url encoding here, I rather suspect
-(defn query-string-for-map [h]
-  (string/join "&"
-            (map (fn [[k v]] (str (name k) "=" v)) h)))
-
-(defn send-query [term filters channel]
-  (.send XhrIo (string/join "?" ["/tracks.json" (query-string-for-map filters)])
-         (fn [e]
-           (let [xhr (.-target e)
-                 o (.getResponseJson xhr)
-                 r (js->clj o)]
-             (put! channel r)))
-         "POST"
-         term
-         {"Content-Type" "text/plain"}
-         ))
-
-(defn send-search-xhr [term owner {:keys [new-results search-term]}]
-  (let [filters (:filters @app-state)]
-    (om/set-state! owner :search-term term)
-    (send-query term filters new-results)))
-
 (defn filters-view [app owner]
   (reify
     om/IWillMount
@@ -185,7 +180,7 @@
               (let [new-filter (<! channel)]
                 (println [:new-filter new-filter])
                 (om/transact! app [:filters] #(merge % new-filter))
-                (send-query
+                #_ (send-query
                  (om/get-state owner :search-term)
                  (:filters @app)
                  (om/get-state owner :new-results))
@@ -193,6 +188,7 @@
     om/IRenderState
     (render-state [this state]
       (let [chan (:update-filters state)
+            search-chan (om/get-shared owner :search-channel)
             filters (:filters app)]
         (dom/div nil
                  (dom/h1
@@ -203,7 +199,11 @@
                                   :type "text"
                                   :placeholder "Search artist/album/title"
                                   :value (:search-term state)
-                                  :onChange #(send-search-xhr (.. % -target -value) owner state)
+                                  :onChange
+                                  (fn [e]
+                                    (let [term (.. e -target -value)]
+                                      (om/set-state! owner :search-term term)
+                                      (put! search-chan term)))
                                   }))
                  (apply dom/div #js {:className "filters" }
                         (map #(dom/span #js {:className "filter"
@@ -259,8 +259,10 @@
                ))))
 
 (defn init []
-  (let [el (. js/document (getElementById "om-app"))]
+  (let [el (. js/document (getElementById "om-app"))
+        search (chan)]
     (om/root app-view app-state
-             {:target el})))
+             {:target el
+              :shared {:search-channel search}})))
 
 (.addEventListener js/window "load" init)
