@@ -95,7 +95,7 @@
            )
     channel))
 
-(defn results-view [app owner]
+(defn results-view [results owner]
   (reify
     om/IWillMount
     (will-mount [_]
@@ -108,7 +108,7 @@
                                      (get % "album")
                                      (js/parseInt (get % "track")))
                             tracks)]
-                (om/update! app :results (vec sorted))
+                (om/update! results (vec sorted))
                 (recur))))))
     om/IRenderState
     (render-state [this {:keys [update-filters]}]
@@ -239,7 +239,7 @@
       (dom/div nil
                (om/build filters-view app {:init-state state})
                (dom/h2 nil "results")
-               (om/build results-view app {:init-state state})
+               (om/build results-view (:results app) {:init-state state})
                (dom/h2 nil "queue")
                (om/build queue-view app)
                (om/build player-view app)
