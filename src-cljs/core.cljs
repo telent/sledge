@@ -95,6 +95,13 @@
            )
     channel))
 
+(defn sorted-tracks [tracks]
+  (sort-by
+   #(vector (get % "artist")
+            (get % "album")
+            (js/parseInt (get % "track")))
+   tracks))
+
 (defn results-view [results owner]
   (reify
     om/IWillMount
@@ -103,11 +110,7 @@
         (go (loop []
               (let [search-for (<! channel)
                     tracks (<! (xhr-search search-for))
-                    sorted (sort-by
-                            #(vector (get % "artist")
-                                     (get % "album")
-                                     (js/parseInt (get % "track")))
-                            tracks)]
+                    sorted (sorted-tracks tracks)]
                 (om/update! results (vec sorted))
                 (recur))))))
     om/IRenderState
