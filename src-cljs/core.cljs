@@ -26,7 +26,6 @@
     {:results []
      :player-queue []
      :filters {}
-     :search-term ""
      :device-type nil
      }))
 
@@ -90,7 +89,7 @@
                    r (js->clj o)]
                (put! channel r)))
            "POST"
-           term
+           (get term "_content")
            {"Content-Type" "text/plain"}
            )
     channel))
@@ -170,25 +169,12 @@
                     queue (range 0 999))
                )))))
 
-;; XXX need to do some url encoding here, I rather suspect
+
 (defn filters-view [app owner]
   (reify
-    om/IWillMount
-    (will-mount [_]
-      (let [channel (om/get-state owner :update-filters)]
-        (go (loop []
-              (let [new-filter (<! channel)]
-                (println [:new-filter new-filter])
-                (om/transact! app [:filters] #(merge % new-filter))
-                #_ (send-query
-                 (om/get-state owner :search-term)
-                 (:filters @app)
-                 (om/get-state owner :new-results))
-                (recur))))))
     om/IRenderState
     (render-state [this state]
-      (let [chan (:update-filters state)
-            search-chan (om/get-shared owner :search-channel)
+      (let [search-chan (om/get-shared owner :search-channel)
             filters (:filters app)]
         (dom/div nil
                  (dom/h1
@@ -203,12 +189,12 @@
                                   (fn [e]
                                     (let [term (.. e -target -value)]
                                       (om/set-state! owner :search-term term)
-                                      (put! search-chan term)))
+                                      (put! search-chan {"_content" term})))
                                   }))
                  (apply dom/div #js {:className "filters" }
                         (map #(dom/span #js {:className "filter"
                                              :onClick
-                                             (fn [e] (put! chan
+                                             (fn [e] (put! search-chan
                                                            {(first %) nil}))}
                                         (str (name (first %)) ": " (second  %)))
                              (filter second filters))))))))
