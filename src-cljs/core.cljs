@@ -86,9 +86,10 @@
     (.send XhrIo (string/join "?" ["/tracks.json" ])
            (fn [e]
              (let [xhr (.-target e)
-                   o (.getResponseJson xhr)
-                   r (js->clj o)]
-               (put! channel r)))
+                   code (.getStatus xhr)
+                   o (and (< code 400) (.getResponseJson xhr))
+                   r (and o (js->clj o))]
+               (put! channel (or r []))))
            "POST"
            (string/join
             " AND "
