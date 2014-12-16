@@ -115,8 +115,8 @@
                     sorted (sorted-tracks tracks)]
                 (om/update! results (vec sorted))
                 (recur))))))
-    om/IRenderState
-    (render-state [this {:keys [update-filters]}]
+    om/IRender
+    (render [this]
       (let [tracks (om/observe owner (search-results))
             button (dom/button
                     #js {:onClick
@@ -125,8 +125,7 @@
                     "+")
             track-components
             (om/build-all results-track-view tracks
-                          {:init-state
-                           {:update-filters update-filters }})]
+                          )]
         (if (mobile?)
           (apply dom/div #js {:className "results tracks" }
                  (dom/div #js {:className "track"}
@@ -237,7 +236,6 @@
     (init-state [_]
       {:search-term ""
        :new-results (chan)
-       :update-filters (chan)
        })
     om/IRenderState
     (render-state [this state]
