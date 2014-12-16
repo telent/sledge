@@ -83,7 +83,7 @@
 
 (defn xhr-search [term]
   (let [channel (chan)]
-    (.send XhrIo (string/join "?" ["/tracks.json" ])
+    (.send XhrIo "/tracks.json"
            (fn [e]
              (let [xhr (.-target e)
                    code (.getStatus xhr)
