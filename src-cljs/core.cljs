@@ -87,9 +87,8 @@
            (fn [e]
              (let [xhr (.-target e)
                    code (.getStatus xhr)
-                   o (and (< code 400) (.getResponseJson xhr))
-                   r (and o (js->clj o))]
-               (put! channel (or r []))))
+                   o (and (< code 400) (js->clj (.getResponseJson xhr)))]
+               (put! channel (or o []))))
            "POST"
            (string/join
             " AND "
