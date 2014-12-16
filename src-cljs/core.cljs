@@ -90,7 +90,9 @@
                    r (js->clj o)]
                (put! channel r)))
            "POST"
-           (get term "_content")
+           (string/join
+            " AND "
+            (map (fn [[k v]] (str (name k) ": " (pr-str v))) term))
            {"Content-Type" "text/plain"}
            )
     channel))
@@ -193,7 +195,7 @@
                                   (fn [e]
                                     (let [term (.. e -target -value)]
                                       (om/set-state! owner :search-term term)
-                                      (put! search-chan {"_content" term})))
+                                      (put! search-chan {:_content term})))
                                   }))
                  (apply dom/div #js {:className "filters" }
                         (map #(dom/span #js {:className "filter"
