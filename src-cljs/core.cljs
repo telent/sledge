@@ -232,14 +232,11 @@
 
 (defn app-view [app owner]
   (reify
-    om/IInitState
-    (init-state [_]
-      {:search-term ""
-       })
-    om/IRenderState
-    (render-state [this state]
+    om/IRender
+    (render [this]
       (dom/div nil
-               (om/build filters-view app {:init-state state})
+               (om/build filters-view app
+                         {:init-state {:search-term ""}})
                (dom/h2 nil "results")
                (om/build results-view (:results app))
                (dom/h2 nil "queue")
