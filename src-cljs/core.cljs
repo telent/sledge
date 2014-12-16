@@ -235,14 +235,13 @@
     om/IInitState
     (init-state [_]
       {:search-term ""
-       :new-results (chan)
        })
     om/IRenderState
     (render-state [this state]
       (dom/div nil
                (om/build filters-view app {:init-state state})
                (dom/h2 nil "results")
-               (om/build results-view (:results app) {:init-state state})
+               (om/build results-view (:results app))
                (dom/h2 nil "queue")
                (om/build queue-view app)
                (om/build player-view app)
