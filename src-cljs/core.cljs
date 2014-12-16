@@ -57,16 +57,17 @@
 
 (defn results-track-view [track owner]
   (reify
-    om/IRenderState
-    (render-state [this {:keys [update-filters]}]
-      (let [artist (dom/span
+    om/IRender
+    (render [this]
+      (let [search-chan (om/get-shared owner :search-channel)
+            artist (dom/span
                     #js {:className "artist"
-                         :onClick #(put! update-filters
+                         :onClick #(put! search-chan
                                          {:artist (get @track "artist")})}
                     (get track "artist"))
             album (dom/span
                    #js {:className "album"
-                        :onClick #(put! update-filters
+                        :onClick #(put! search-chan
                                         {:artist (get @track "artist")
                                          :album (get @track "album")})}
                    (get track "album"))
