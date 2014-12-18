@@ -184,13 +184,12 @@
                                   :placeholder "Search artist/album/title"
                                   :value (:string state)
                                   :onChange
-                                  (fn [e]
-                                    (let [str (.. e -target -value)]
-                                      (om/set-state! owner :string str)
-                                      ))
+                                  #(om/set-state! owner :string
+                                                  (.. % -target -value))
                                   :onKeyUp
-                                  (fn [e] (if (= 13 (.-which e))
-                                            (send-search e)))
+                                  #(when (= 13 (.-which %))
+                                     (send-search %)
+                                     (om/set-state! owner :string ""))
                                   :onBlur send-search
                                   }))
                  (apply dom/div #js {:className "filters" }
