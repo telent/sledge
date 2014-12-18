@@ -25,8 +25,6 @@
   (atom
     {:results []
      :player-queue []
-     :filters {}
-     :device-type nil
      }))
 
 (defn search-results []
