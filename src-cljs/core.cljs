@@ -173,7 +173,6 @@
       (let [search-chan (om/get-shared owner :search-channel)
             send-search (fn [e]
                           (let [str (.. e -target -value)]
-                            (om/update! term [:_content] str)
                             (put! search-chan {:_content str})))]
         (dom/div nil
                  (dom/h1
