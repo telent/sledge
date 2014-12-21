@@ -4,6 +4,7 @@
   (:import [goog.net XhrIo])
   (:require [goog.events :as events]
             [clojure.string :as string]
+            [clojure.set :as set]
             [cljs.core.async :as async :refer [>! <! put! chan]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
@@ -24,7 +25,7 @@
 (def app-state
   (atom
     {:search {
-              :term {}
+              :term #{}
               :results []
               }
      :player-queue []
@@ -64,13 +65,15 @@
             artist (dom/span
                     #js {:className "artist"
                          :onClick #(put! search-chan
-                                         {:artist (get @track "artist")})}
+                                         [:add
+                                          [[:artist (get @track "artist")]]])}
                     (get track "artist"))
             album (dom/span
                    #js {:className "album"
                         :onClick #(put! search-chan
-                                        {:artist (get @track "artist")
-                                         :album (get @track "album")})}
+                                        [:add
+                                         [[:artist (get @track "artist")]
+                                          [:album (get @track "album")]]])}
                    (get track "album"))
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
@@ -173,7 +176,8 @@
       (let [search-chan (om/get-shared owner :search-channel)
             send-search (fn [e]
                           (let [str (.. e -target -value)]
-                            (put! search-chan {:_content str})))]
+                            (if-not (empty? str)
+                              (put! search-chan [:add [[:_content str]]]))))]
         (dom/div nil
                  (dom/h1
                   #js {:id "sledge"}
@@ -196,7 +200,7 @@
                         (map #(dom/span #js {:className "filter"
                                              :onClick
                                              (fn [e] (put! search-chan
-                                                           {(first %) nil}))}
+                                                           [:drop [%]]))}
                                         (str (name (first %)) ": " (second  %)))
                              (filter second term))))))))
 
@@ -226,13 +230,19 @@
                                  })
                  )))))
 
+(defn update-term [[command new-terms] previous]
+  (case command
+    :add (set/union previous (set new-terms))
+    :drop (set/difference previous new-terms)))
+
+
 (defn search-view [search owner]
   (reify
     om/IWillMount
     (will-mount [_]
       (let [channel (om/get-shared owner :search-channel)]
         (go (loop []
-              (let [search-for (merge (:term @search) (<! channel))
+              (let [search-for (update-term (<! channel) (:term @search))
                     _ (om/update! search [:term] search-for)
                     tracks (<! (xhr-search search-for))
                     sorted (sorted-tracks tracks)]
