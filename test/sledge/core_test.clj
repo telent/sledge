@@ -4,33 +4,78 @@
             [clj-webdriver.firefox :as ff]
             [sledge.core :refer :all]))
 
+(defn search-tracks [text]
+  (let [input (tx/element "input#search-term")]
+    (is (tx/displayed? input ) true)
+    (tx/input-text input (str text "\r")))
+  (tx/wait-until #(> (count (tx/elements "div.results div.track")) 1)))
+
+(defn click-track-button [el]
+  (tx/click (tx/find-element-under el {:tag :button})))
+
+(tx/set-driver! {:browser :firefox
+                 :profile (ff/new-profile)
+                 }
+                "http://localhost:53281")
+
+(defn results []
+  (tx/elements "div.results div.track"))
+
+(defn filters []
+  (tx/elements "span.filter"))
 
 (deftest the-tests
   (testing  "Server responds"
-    (tx/set-driver! {:browser :firefox
-                     :profile (ff/new-profile)
-                     } "http://localhost:53281")
-    (let [input (tx/element "input#search-term")]
-      (is (tx/displayed? input ) true)
-      (tx/input-text input "queen"))
-    (let [els (tx/elements "div.results div.track")
+    (search-tracks "queen")
+    (let [els (results)
           choose-rows (map #(nth els %) [2 4 6 11])]
-      (dorun (map #(tx/click (tx/find-element-under % {:tag :button}))
-                  choose-rows)))
-    (is (= 5 (count (tx/elements "div.queue div.track")))
-        "4 tracks added to queue")
+      (dorun (map click-track-button choose-rows)))
+
+    (tx/wait-until #(= 5 (count (tx/elements "div.queue div.track"))))
+
     (let [audio-url (tx/attribute "audio" :src)]
       (is (.startsWith audio-url "http://localhost:53281/bits/"))
       (let [del (nth (tx/elements "div.queue div.track") 2)]
         (tx/click (tx/find-element-under del {:tag :button}))
-        (is (= 4 (count (tx/elements "div.queue div.track"))))
+        (tx/wait-until #(= 4 (count (tx/elements "div.queue div.track"))))
         (is (= (tx/attribute "audio" :src) audio-url)
             "deleting 2nd track doesn't interrupt playback"))
       (let [del (nth (tx/elements "div.queue div.track") 1)]
         (tx/click (tx/find-element-under del {:tag :button}))
-        (is (= 3 (count (tx/elements "div.queue div.track"))))
+        (tx/wait-until #(= 3 (count (tx/elements "div.queue div.track"))))
         (is (not (= (tx/attribute "audio" :src) audio-url))
             "deleting 1st track moves player onto second"))
       )))
 
-;; (clojure.test/run-tests 'sledge.core-test)
+(defn search-for-text [text]
+  (search-tracks text)
+  (tx/wait-until #(> (count (results)) 1))
+  (tx/wait-until (fn []
+                   (some? #(= (tx/text %) (str "_content: " text))
+                          (filters)))))
+
+(defn find-track-by-artist [artist]
+  (first
+   (filter #(= (tx/text (tx/find-element-under % {:class "artist"}))
+               artist)
+           (tx/elements "div.results.tracks div.track"))))
+
+(deftest the-more-tests
+  (testing  "search for text"
+    (search-tracks "queen")
+    (let [row (find-track-by-artist "Queen")]
+      (tx/click (tx/find-element-under row {:class "artist"}))
+      (is (every? #{"Queen"}
+                  (map tx/text (rest (tx/elements "div.results.tracks span.artist")))))
+      (let [album (tx/find-element-under row {:class "album"})]
+        (tx/click album)
+        (is (every? (partial = (tx/text album))
+                    (map tx/text (rest (tx/elements "div.results.tracks span.album"))))))
+      (tx/wait-until #(= (count (filters)) 3))
+      (tx/click (first (filters)))
+      (tx/wait-until #(= (count (filters)) 2))
+      )))
+
+(comment
+(clojure.test/run-tests 'sledge.core-test)
+)

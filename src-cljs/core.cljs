@@ -4,6 +4,7 @@
   (:import [goog.net XhrIo])
   (:require [goog.events :as events]
             [clojure.string :as string]
+            [clojure.set :as set]
             [cljs.core.async :as async :refer [>! <! put! chan]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
@@ -23,15 +24,15 @@
 
 (def app-state
   (atom
-    {:results []
+    {:search {
+              :term #{}
+              :results []
+              }
      :player-queue []
-     :filters {}
-     :search-term ""
-     :device-type nil
      }))
 
 (defn search-results []
-  (om/ref-cursor (:results (om/root-cursor app-state))))
+  (om/ref-cursor (:results (:search (om/root-cursor app-state)))))
 
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
@@ -58,18 +59,21 @@
 
 (defn results-track-view [track owner]
   (reify
-    om/IRenderState
-    (render-state [this {:keys [update-filters]}]
-      (let [artist (dom/span
+    om/IRender
+    (render [this]
+      (let [search-chan (om/get-shared owner :search-channel)
+            artist (dom/span
                     #js {:className "artist"
-                         :onClick #(put! update-filters
-                                         {:artist (get @track "artist")})}
+                         :onClick #(put! search-chan
+                                         [:add
+                                          [[:artist (get @track "artist")]]])}
                     (get track "artist"))
             album (dom/span
                    #js {:className "album"
-                        :onClick #(put! update-filters
-                                        {:artist (get @track "artist")
-                                         :album (get @track "album")})}
+                        :onClick #(put! search-chan
+                                        [:add
+                                         [[:artist (get @track "artist")]
+                                          [:album (get @track "album")]]])}
                    (get track "album"))
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
@@ -80,32 +84,42 @@
                  [title artist album duration button]
                  [artist album title duration button]))))))
 
-(defn results-view [app owner]
+
+(defn xhr-search [term]
+  (let [term (filter second term)
+        channel (chan)]
+    (.send XhrIo "/tracks.json"
+           (fn [e]
+             (let [xhr (.-target e)
+                   code (.getStatus xhr)
+                   o (and (< code 400) (js->clj (.getResponseJson xhr)))]
+               (put! channel (or o []))))
+           "POST"
+           (string/join
+            " AND "
+            (map (fn [[k v]] (str (name k) ": " (pr-str v))) term))
+           {"Content-Type" "text/plain"}
+           )
+    channel))
+
+(defn sorted-tracks [tracks]
+  (sort-by
+   #(vector (get % "artist")
+            (get % "album")
+            (js/parseInt (get % "track")))
+   tracks))
+
+(defn results-view [tracks owner]
   (reify
-    om/IWillMount
-    (will-mount [_]
-      (let [channel (om/get-state owner :new-results)]
-        (go (loop []
-              (let [tracks (<! channel)
-                    sorted (sort-by
-                            #(vector (get % "artist")
-                                     (get % "album")
-                                     (js/parseInt (get % "track")))
-                            tracks)]
-                (om/update! app :results (vec sorted))
-                (recur))))))
-    om/IRenderState
-    (render-state [this {:keys [update-filters]}]
-      (let [tracks (om/observe owner (search-results))
-            button (dom/button
+    om/IRender
+    (render [this]
+      (let [button (dom/button
                     #js {:onClick
                          (fn [e] (doall (map #(enqueue-track %)
                                              tracks)))}
                     "+")
             track-components
-            (om/build-all results-track-view tracks
-                          {:init-state
-                           {:update-filters update-filters }})]
+            (om/build-all results-track-view tracks)]
         (if (mobile?)
           (apply dom/div #js {:className "results tracks" }
                  (dom/div #js {:className "track"}
@@ -154,46 +168,16 @@
                     queue (range 0 999))
                )))))
 
-;; XXX need to do some url encoding here, I rather suspect
-(defn query-string-for-map [h]
-  (string/join "&"
-            (map (fn [[k v]] (str (name k) "=" v)) h)))
 
-(defn send-query [term filters channel]
-  (.send XhrIo (string/join "?" ["/tracks.json" (query-string-for-map filters)])
-         (fn [e]
-           (let [xhr (.-target e)
-                 o (.getResponseJson xhr)
-                 r (js->clj o)]
-             (put! channel r)))
-         "POST"
-         term
-         {"Content-Type" "text/plain"}
-         ))
-
-(defn send-search-xhr [term owner {:keys [new-results search-term]}]
-  (let [filters (:filters @app-state)]
-    (om/set-state! owner :search-term term)
-    (send-query term filters new-results)))
-
-(defn filters-view [app owner]
+(defn search-entry-view [term owner]
   (reify
-    om/IWillMount
-    (will-mount [_]
-      (let [channel (om/get-state owner :update-filters)]
-        (go (loop []
-              (let [new-filter (<! channel)]
-                (println [:new-filter new-filter])
-                (om/transact! app [:filters] #(merge % new-filter))
-                (send-query
-                 (om/get-state owner :search-term)
-                 (:filters @app)
-                 (om/get-state owner :new-results))
-                (recur))))))
     om/IRenderState
     (render-state [this state]
-      (let [chan (:update-filters state)
-            filters (:filters app)]
+      (let [search-chan (om/get-shared owner :search-channel)
+            send-search (fn [e]
+                          (let [str (.. e -target -value)]
+                            (if-not (empty? str)
+                              (put! search-chan [:add [[:_content str]]]))))]
         (dom/div nil
                  (dom/h1
                   #js {:id "sledge"}
@@ -202,16 +186,23 @@
                                   :id "search-term"
                                   :type "text"
                                   :placeholder "Search artist/album/title"
-                                  :value (:search-term state)
-                                  :onChange #(send-search-xhr (.. % -target -value) owner state)
+                                  :value (:string state)
+                                  :onChange
+                                  #(om/set-state! owner :string
+                                                  (.. % -target -value))
+                                  :onKeyUp
+                                  #(when (= 13 (.-which %))
+                                     (send-search %)
+                                     (om/set-state! owner :string ""))
+                                  :onBlur send-search
                                   }))
                  (apply dom/div #js {:className "filters" }
                         (map #(dom/span #js {:className "filter"
                                              :onClick
-                                             (fn [e] (put! chan
-                                                           {(first %) nil}))}
+                                             (fn [e] (put! search-chan
+                                                           [:drop [%]]))}
                                         (str (name (first %)) ": " (second  %)))
-                             (filter second filters))))))))
+                             (filter second term))))))))
 
 (defn best-media-url [r]
   (let [urls (get r "_links")]
@@ -239,28 +230,48 @@
                                  })
                  )))))
 
+(defn update-term [[command new-terms] previous]
+  (case command
+    :add (set/union previous (set new-terms))
+    :drop (set/difference previous new-terms)))
+
+
+(defn search-view [search owner]
+  (reify
+    om/IWillMount
+    (will-mount [_]
+      (let [channel (om/get-shared owner :search-channel)]
+        (go (loop []
+              (let [search-for (update-term (<! channel) (:term @search))
+                    _ (om/update! search [:term] search-for)
+                    tracks (<! (xhr-search search-for))
+                    sorted (sorted-tracks tracks)]
+                (om/update! search [:results] (vec sorted))
+                (recur))))))
+    om/IRender
+    (render [this]
+      (dom/div nil
+               (om/build search-entry-view (:term search)
+                         {:init-state {:string ""}})
+               (dom/h2 nil "results")
+               (om/build results-view (:results search))))))
+
 (defn app-view [app owner]
   (reify
-    om/IInitState
-    (init-state [_]
-      {:search-term ""
-       :new-results (chan)
-       :update-filters (chan)
-       })
-    om/IRenderState
-    (render-state [this state]
+    om/IRender
+    (render [this]
       (dom/div nil
-               (om/build filters-view app {:init-state state})
-               (dom/h2 nil "results")
-               (om/build results-view app {:init-state state})
+               (om/build search-view (:search app))
                (dom/h2 nil "queue")
                (om/build queue-view app)
                (om/build player-view app)
                ))))
 
 (defn init []
-  (let [el (. js/document (getElementById "om-app"))]
+  (let [el (. js/document (getElementById "om-app"))
+        search (chan)]
     (om/root app-view app-state
-             {:target el})))
+             {:target el
+              :shared {:search-channel search}})))
 
 (.addEventListener js/window "load" init)
