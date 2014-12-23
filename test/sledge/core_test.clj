@@ -18,10 +18,16 @@
                  }
                 "http://localhost:53281")
 
+(defn results []
+  (tx/elements "div.results div.track"))
+
+(defn filters []
+  (tx/elements "span.filter"))
+
 (deftest the-tests
   (testing  "Server responds"
     (search-tracks "queen")
-    (let [els (tx/elements "div.results div.track")
+    (let [els (results)
           choose-rows (map #(nth els %) [2 4 6 11])]
       (dorun (map click-track-button choose-rows)))
 
@@ -45,7 +51,7 @@
   (search-tracks text)
   (tx/wait-until #(> (count (results)) 1))
   (tx/wait-until (fn []
-                   (some? #(matches (content %) (str "_content: " text))
+                   (some? #(= (tx/text %) (str "_content: " text))
                           (filters)))))
 
 (defn find-track-by-artist [artist]
@@ -58,14 +64,16 @@
   (testing  "search for text"
     (search-tracks "queen")
     (let [row (find-track-by-artist "Queen")]
-      (tx/click (tx/find-element-under row {:class :artist}))
-      ;; assert all tracks have matching artist
-      (tx/click (tx/find-element-under row {:class :album}))
-      ;; assert all tracks have matching album
-      ;; - verify three tags rendered
-      ;; - click on a tag
-      ;; - verify it has been removed
-
+      (tx/click (tx/find-element-under row {:class "artist"}))
+      (is (every? #{"Queen"}
+                  (map tx/text (rest (tx/elements "div.results.tracks span.artist")))))
+      (let [album (tx/find-element-under row {:class "album"})]
+        (tx/click album)
+        (is (every? (partial = (tx/text album))
+                    (map tx/text (rest (tx/elements "div.results.tracks span.album"))))))
+      (tx/wait-until #(= (count (filters)) 3))
+      (tx/click (first (filters)))
+      (tx/wait-until #(= (count (filters)) 2))
       )))
 
 (comment
