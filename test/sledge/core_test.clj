@@ -4,22 +4,26 @@
             [clj-webdriver.firefox :as ff]
             [sledge.core :refer :all]))
 
+(defn search-tracks [text]
+  (let [input (tx/element "input#search-term")]
+    (is (tx/displayed? input ) true)
+    (tx/input-text input (str text "\r")))
+  (tx/wait-until #(> (count (tx/elements "div.results div.track")) 1)))
+
+(defn click-track-button [el]
+  (tx/click (tx/find-element-under el {:tag :button})))
+
+(tx/set-driver! {:browser :firefox
+                 :profile (ff/new-profile)
+                 }
+                "http://localhost:53281")
 
 (deftest the-tests
   (testing  "Server responds"
-    (tx/set-driver! {:browser :firefox
-                     :profile (ff/new-profile)
-                     } "http://localhost:53281")
-    (let [input (tx/element "input#search-term")]
-      (is (tx/displayed? input ) true)
-      (tx/input-text input "queen"))
-
-    (tx/wait-until #(> (count (tx/elements "div.results div.track")) 1))
-
+    (search-tracks "queen")
     (let [els (tx/elements "div.results div.track")
           choose-rows (map #(nth els %) [2 4 6 11])]
-      (dorun (map #(tx/click (tx/find-element-under % {:tag :button}))
-                  choose-rows)))
+      (dorun (map click-track-button choose-rows)))
 
     (tx/wait-until #(= 5 (count (tx/elements "div.queue div.track"))))
 
@@ -37,4 +41,33 @@
             "deleting 1st track moves player onto second"))
       )))
 
-;; (clojure.test/run-tests 'sledge.core-test)
+(defn search-for-text [text]
+  (search-tracks text)
+  (tx/wait-until #(> (count (results)) 1))
+  (tx/wait-until (fn []
+                   (some? #(matches (content %) (str "_content: " text))
+                          (filters)))))
+
+(defn find-track-by-artist [artist]
+  (first
+   (filter #(= (tx/text (tx/find-element-under % {:class "artist"}))
+               artist)
+           (tx/elements "div.results.tracks div.track"))))
+
+(deftest the-more-tests
+  (testing  "search for text"
+    (search-tracks "queen")
+    (let [row (find-track-by-artist "Queen")]
+      (tx/click (tx/find-element-under row {:class :artist}))
+      ;; assert all tracks have matching artist
+      (tx/click (tx/find-element-under row {:class :album}))
+      ;; assert all tracks have matching album
+      ;; - verify three tags rendered
+      ;; - click on a tag
+      ;; - verify it has been removed
+
+      )))
+
+(comment
+(clojure.test/run-tests 'sledge.core-test)
+)
