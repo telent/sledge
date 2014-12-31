@@ -15,18 +15,6 @@ body {
 	height: 30px;
 	border-bottom: 1px inset blue;
     }
-    h1#sledge input#search-term {
-        min-width: 60%;
-	height: 32px;
-	float: right;
-	font-size: 15px;
-	background-image: url(/images/search.png);
-	background-position: right center;
-	background-repeat: no-repeat;
-    }
-    input#search-term:before {
-        content: "Q";
-    }
     div.tracks {
 	display: block;
         min-width: 100%;
@@ -94,17 +82,40 @@ h2 {
     color: #66a;
 }
 
-div.filters {margin: 1em 0}
+div.search-box {
+    border: inset 2px;
+    padding: 8px 0;
+}
 
-div.filters span.filter {
+div#bodge {
+    display: inline;
+}
+
+div.search-box input#search-term {
+    border: none;
+    height: 32px;
+    font-size: 12px;
+    position: absolute;
+/*    background-image: url(/images/search.png); */
+    background-position: right center;
+    background-repeat: no-repeat;
+    width: 100%;
+}
+
+span.filters {
+/*    float: left; */
+}
+
+span.filters span.filter {
     border: 1px solid grey;
+    display: inline-block;
     background-color: #FCE6C9;
     font-size: 80%;
-    margin-right: 1em;
+    margin: 0 0.2em 0.2em 0;
     padding: 0.3em;
     font-weight: bold;
 }
-div.filters span.filter:after {
+span.filters span.filter:after {
     content: "\2a2f";
     margin-left: 0.5em;
 }
