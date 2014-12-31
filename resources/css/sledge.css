@@ -85,6 +85,7 @@ h2 {
 div.search-box {
     border: inset 2px;
     padding: 8px 0;
+    height: 36px; /* see #search-term height */
 }
 
 div#bodge {
@@ -96,6 +97,8 @@ div.search-box input#search-term {
     height: 32px;
     font-size: 12px;
     position: absolute;
+    margin: 0 4px; 
+    background: transparent;
 /*    background-image: url(/images/search.png); */
     background-position: right center;
     background-repeat: no-repeat;
