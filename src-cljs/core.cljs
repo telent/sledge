@@ -29,6 +29,7 @@
               :results []
               }
      :player-queue []
+     :tab-on-view [:search]
      }))
 
 (defn search-results []
@@ -36,6 +37,9 @@
 
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
+
+(defn tab-on-view []
+  (om/ref-cursor (:tab-on-view (om/root-cursor app-state))))
 
 (defn enqueue-track [track]
   (om/transact! (player-queue) #(conj % track)))
@@ -163,8 +167,8 @@
                         (dom/span #js {:className "duration"} "Length")
                         (dom/button #js {:onClick #(dequeue-all)} "-"))
                (map #(om/build queue-track-view
-                             %1
-                             {:state {:index %2}})
+                               %1
+                               {:state {:index %2}})
                     queue (range 0 999))
                )))))
 
@@ -222,16 +226,23 @@
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
-        bits (best-media-url (first queue))]
-        (dom/div nil
-                 (dom/h2 nil "queue")
-                 (om/build queue-view app)
-                 (dom/audio #js {:controls "controls"
+            on-view (om/observe owner (tab-on-view))
+            bits (best-media-url (first queue))
+            player (dom/audio #js {:controls "controls"
                                  :autoPlay "true"
                                  :ref "player"
                                  :src bits
-                                 })
-                 )))))
+                                 })]
+        (if (= (first on-view) :player-queue)
+          (dom/div nil
+                   (dom/h2 nil "player")
+                   (dom/h3 nil "queued")
+                   (om/build queue-view app)
+                   player)
+          (dom/div nil
+                   player))))))
+
+
 
 (defn update-term [[command new-terms] previous]
   (case command
@@ -253,11 +264,16 @@
                 (recur))))))
     om/IRender
     (render [this]
-      (dom/div nil
-               (om/build search-entry-view (:term search)
-                         {:init-state {:string ""}})
-               (dom/h2 nil "results")
-               (om/build results-view (:results search))))))
+      (let [on-view (om/observe owner (tab-on-view))]
+        (if (= (first on-view) :search)
+          (dom/div nil
+                   (dom/h2 nil "library")
+                   (om/build search-entry-view (:term search)
+                             {:init-state {:string ""}})
+                   (om/build results-view (:results search))))))))
+
+(defn show-tab [cursor tab-name]
+  (om/update! cursor [:tab-on-view] [tab-name]))
 
 (defn tab-selector-view [app owner]
   (reify
@@ -265,9 +281,9 @@
     (render [this]
       (dom/nav nil
                (dom/ul nil
-                       (dom/li {:onClick #(show-tab :library)}
+                       (dom/li #js {:onClick #(show-tab app :search)}
                                "library")
-                       (dom/li  {:onClick #(show-tab :player)}
+                       (dom/li  #js {:onClick #(show-tab app :player-queue)}
                                 "player"))))))
 
 
