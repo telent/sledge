@@ -178,13 +178,20 @@
                           (let [str (.. e -target -value)]
                             (if-not (empty? str)
                               (put! search-chan [:add [[:_content str]]]))))]
-        (dom/div nil
-                 (dom/h1
-                  #js {:id "sledge"}
-                  "sledge"
+        (dom/div
+         #js {:className "search-box"}
+         (apply dom/span #js {:className "filters" }
+                (map #(dom/span #js {:className "filter"
+                                     :onClick
+                                     (fn [e] (put! search-chan
+                                                   [:drop [%]]))}
+                                (str (name (first %)) ": " (second  %)))
+                     (filter second term)))
+         (dom/div #js {:id "bodge"}
                   (dom/input #js {:ref "search-term"
                                   :id "search-term"
                                   :type "text"
+                                  :size "10"
                                   :placeholder "Search artist/album/title"
                                   :value (:string state)
                                   :onChange
@@ -195,14 +202,8 @@
                                      (send-search %)
                                      (om/set-state! owner :string ""))
                                   :onBlur send-search
-                                  }))
-                 (apply dom/div #js {:className "filters" }
-                        (map #(dom/span #js {:className "filter"
-                                             :onClick
-                                             (fn [e] (put! search-chan
-                                                           [:drop [%]]))}
-                                        (str (name (first %)) ": " (second  %)))
-                             (filter second term))))))))
+                                  })))
+        ))))
 
 (defn best-media-url [r]
   (let [urls (get r "_links")]
@@ -261,6 +262,10 @@
     om/IRender
     (render [this]
       (dom/div nil
+               (dom/h1
+                #js {:id "sledge"}
+                "sledge")
+
                (om/build search-view (:search app))
                (dom/h2 nil "queue")
                (om/build queue-view app)
