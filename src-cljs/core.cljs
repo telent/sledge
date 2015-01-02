@@ -224,6 +224,8 @@
       (let [queue (om/observe owner (player-queue))
         bits (best-media-url (first queue))]
         (dom/div nil
+                 (dom/h2 nil "queue")
+                 (om/build queue-view app)
                  (dom/audio #js {:controls "controls"
                                  :autoPlay "true"
                                  :ref "player"
@@ -257,18 +259,29 @@
                (dom/h2 nil "results")
                (om/build results-view (:results search))))))
 
+(defn tab-selector-view [app owner]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/nav nil
+               (dom/ul nil
+                       (dom/li {:onClick #(show-tab :library)}
+                               "library")
+                       (dom/li  {:onClick #(show-tab :player)}
+                                "player"))))))
+
+
+
 (defn app-view [app owner]
   (reify
     om/IRender
     (render [this]
       (dom/div nil
-               (dom/h1
+               (dom/header
                 #js {:id "sledge"}
-                "sledge")
-
+                "sledge"
+                (om/build tab-selector-view app))
                (om/build search-view (:search app))
-               (dom/h2 nil "queue")
-               (om/build queue-view app)
                (om/build player-view app)
                ))))
 

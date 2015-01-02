@@ -6,14 +6,32 @@ body {
 }
 
 @media screen and (max-width: 480px) {
-    h1#sledge { 
+    header { 
 	font-weight: normal;
 	background-color: #ddf;
-	font-size: 24px;
-	padding: 8px 5px; margin: 0;
+	font-size: 28px;
+	padding: 4px 5px 8px 5px; margin: 0;
 	text-shadow: #88d 2px 2px 4px;
 	height: 30px;
 	border-bottom: 1px inset blue;
+    }
+    nav {
+	font-size: 18px;
+	display: inline-block;
+    }
+    nav ul {
+	position: absolute;
+	right: 10px;
+	top: 0;
+	padding-top: 0;
+	margin-top: 10px;
+	display: inline;
+    }
+    nav ul li {
+	padding-top: 0;
+	margin-top: 0;
+	margin-left: 2em;
+	display: inline;
     }
     div.tracks {
 	display: block;
