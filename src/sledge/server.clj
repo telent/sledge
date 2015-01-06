@@ -133,12 +133,15 @@
          (:dev scripts))
     [:script "goog.require(\"sledge.core\");"]
     [:footer {}
-     [:p "Site Copyright &copy; 2014 Daniel Barlow.  Sledge is distributed under the terms of the "
+     ;; maybe this can go into a popup or 'about'
+     ;; item somewhere
+     [:p "Copyright &copy;2014 Daniel Barlow"]
+     [:p
       [:a {:href "http://www.gnu.org/licenses/agpl.html"}
        "GNU Affero General Public Licence"]
-      ".  You can download it from "
+      " | "
       [:a {:href "http://github.com/telent/sledge"}
-       "Github"] "."]]
+       "Download"]]]
     ]])
 
 
@@ -176,14 +179,12 @@
                                (java.util.Arrays/copyOf buf w))
                               (recur))
                             (< w 0)
-                            (async/close! chan))))
-                  (println "done with " pathname))))]
+                            (async/close! chan)))))))]
     chan))
 
 (defn transcode-handler [request pathname]
   {:status 200
-   :headers {"content-type" "audio/ogg"
-             "x-hello" "goodbye"}
+   :headers {"content-type" "audio/ogg"}
    :body (manifold/->source (transcode-chan pathname))})
 
 (defn maybe-transcode [req pathname from to]
@@ -202,7 +203,6 @@
   (let [urlpath (str/split (:uri req) #"/")
         [b64 ext] (str/split (get urlpath 2) #"\.")
         real-pathname (unbase64 b64)]
-    (println real-pathname)
     ;; XXX this *really* needs to be an exact match
     (if-let [r (first (filter
                        #(= (:pathname %) real-pathname)

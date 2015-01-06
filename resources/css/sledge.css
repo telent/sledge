@@ -147,7 +147,7 @@ span.filters span.filter:after {
 
 
 footer {
-    font-size: 90%;
+    font-size: 14px;
     line-height: 110%;
     background-color: grey;
     color: white;
@@ -155,7 +155,12 @@ footer {
     margin: 2em 0;
     border-top-style: groove;
 }
-
+footer a {
+    color: #ddf;
+}
+footer p {
+    margin: 0 0 3px 0;
+}
 audio {
     margin-top: 1em;
 }
