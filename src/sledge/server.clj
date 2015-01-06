@@ -110,8 +110,7 @@
 
 
 (def scripts
-  {:dev [#_"http://fb.me/react-0.11.1.js",
-         "//cdnjs.cloudflare.com/ajax/libs/react/0.11.1/react.min.js"
+  {:dev ["/react/react.js"
          "out/goog/base.js"
          "out/main.js"]
    :production ["production-out/main.js"]
