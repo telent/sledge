@@ -235,8 +235,6 @@
                                  })]
         (if (= (first on-view) :player-queue)
           (dom/div nil
-                   (dom/h2 nil "player")
-                   (dom/h3 nil "queued")
                    (om/build queue-view app)
                    player)
           (dom/div nil
@@ -267,7 +265,6 @@
       (let [on-view (om/observe owner (tab-on-view))]
         (if (= (first on-view) :search)
           (dom/div nil
-                   (dom/h2 nil "library")
                    (om/build search-entry-view (:term search)
                              {:init-state {:string ""}})
                    (om/build results-view (:results search))))))))
@@ -279,12 +276,25 @@
   (reify
     om/IRender
     (render [this]
-      (dom/nav nil
-               (dom/ul nil
-                       (dom/li #js {:onClick #(show-tab app :search)}
-                               "library")
-                       (dom/li  #js {:onClick #(show-tab app :player-queue)}
-                                "player"))))))
+      (let [on-view (om/observe owner (tab-on-view))]
+        (dom/nav nil
+                 (dom/ul nil
+                         (dom/li
+                          #js {:onClick #(show-tab app :search)
+                               :className
+                               (if (= (first on-view) :search)
+                                 "selected"
+                                 "unselected")
+                               }
+                          "library")
+                         (dom/li
+                          #js {:onClick #(show-tab app :player-queue)
+                               :className
+                               (if (= (first on-view) :player-queue)
+                                 "selected"
+                                 "unselected")
+                               }
+                          "queue")))))))
 
 
 

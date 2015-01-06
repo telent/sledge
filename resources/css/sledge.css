@@ -14,6 +14,7 @@ body {
 	text-shadow: #88d 2px 2px 4px;
 	height: 30px;
 	border-bottom: 1px inset blue;
+	margin-bottom: 6px;
     }
     nav {
 	font-size: 18px;
@@ -32,6 +33,9 @@ body {
 	margin-top: 0;
 	margin-left: 2em;
 	display: inline;
+    }
+    nav ul li.selected {
+	text-shadow: #ff00ff 2px 2px 4px;
     }
     div.tracks {
 	display: block;
@@ -113,7 +117,7 @@ div#bodge {
 div.search-box input#search-term {
     border: none;
     height: 32px;
-    font-size: 12px;
+    font-size: 18px;
     position: absolute;
     margin: 0 4px; 
     background: transparent;
