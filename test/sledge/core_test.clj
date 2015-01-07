@@ -5,6 +5,7 @@
             [sledge.core :refer :all]))
 
 (defn search-tracks [text]
+  (tx/click "#show-library")
   (let [input (tx/element "input#search-term")]
     (is (tx/displayed? input ) true)
     (tx/input-text input (str text "\r")))
@@ -21,6 +22,10 @@
 (defn results []
   (tx/elements "div.results div.track"))
 
+(defn queued-tracks []
+  (tx/click "#show-queue")
+  (tx/elements "div.queue div.track"))
+
 (defn filters []
   (tx/elements "span.filter"))
 
@@ -30,8 +35,7 @@
     (let [els (results)
           choose-rows (map #(nth els %) [2 4 6 11])]
       (dorun (map click-track-button choose-rows)))
-
-    (tx/wait-until #(= 5 (count (tx/elements "div.queue div.track"))))
+    (tx/wait-until #(= 5 (count (queued-tracks))))
 
     (let [audio-url (tx/attribute "audio" :src)]
       (is (.startsWith audio-url "http://localhost:53281/bits/"))
@@ -65,12 +69,14 @@
     (search-tracks "queen")
     (let [row (find-track-by-artist "Queen")]
       (tx/click (tx/find-element-under row {:class "artist"}))
-      (is (every? #{"Queen"}
-                  (map tx/text (rest (tx/elements "div.results.tracks span.artist")))))
+      (tx/wait-until
+       #(every? #{"Queen"}
+                (map tx/text (rest (tx/elements "div.results.tracks span.artist")))))
       (let [album (tx/find-element-under row {:class "album"})]
         (tx/click album)
-        (is (every? (partial = (tx/text album))
-                    (map tx/text (rest (tx/elements "div.results.tracks span.album"))))))
+        (tx/wait-until
+         #(every? (partial = (tx/text album))
+                  (map tx/text (rest (tx/elements "div.results.tracks span.album"))))))
       (tx/wait-until #(= (count (filters)) 3))
       (tx/click (first (filters)))
       (tx/wait-until #(= (count (filters)) 2))

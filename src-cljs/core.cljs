@@ -286,7 +286,7 @@
                                  "selected"
                                  "unselected")
                                }
-                          "library")
+                          (dom/span #js {:id "show-library"} "library"))
                          (dom/li
                           #js {:onClick #(show-tab app :player-queue)
                                :className
@@ -294,7 +294,7 @@
                                  "selected"
                                  "unselected")
                                }
-                          "queue")))))))
+                          (dom/span #js {:id "show-queue"} "queue"))))))))
 
 
 
