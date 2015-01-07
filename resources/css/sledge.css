@@ -6,74 +6,79 @@ body {
 }
 
 @media screen and (max-width: 480px) {
-    h1#sledge { 
-	font-weight: normal;
-	background-color: #ddf;
-	font-size: 24px;
-	padding: 8px 5px; margin: 0;
-	text-shadow: #88d 2px 2px 4px;
-	height: 30px;
-	border-bottom: 1px inset blue;
-    }
-    div.tracks {
-	display: block;
-        min-width: 100%;
-    }
-    div.tracks div.track {
-	display: block;
-	position: relative;
-	height: 44px;
-        background: #ddd;
-        margin-bottom: 6px;
-    }
-    div.tracks div.track .title {
-	position: absolute;
-	top: 4px; left: 2px;
-    }
-    div.tracks div.track .duration {
-	position: absolute;
-	top: 4px; right: 40px;
-    }
-    div.tracks div.track .album {
-	position: absolute;
-	font-size: 80%;
-	bottom: 3px; left: 8px;
-    }
-    div.tracks div.track .artist {
-	position: absolute;
-	font-size: 80%;
-	bottom: 3px; right: 40px;
-    }
-    div.tracks div.track button {
-	position: absolute;
-        width: 32px; height: 32px; 
-	top: 6px; right: 3px;
-    }
-    div.tracks div.track span {
-	display: inline;
-    }
+    /* mobile-specific layout will eventually go here */
+}
+header { 
+    font-weight: normal;
+    background-color: #ddf;
+    font-size: 28px;
+    padding: 4px 5px 8px 5px; margin: 0;
+    text-shadow: #88d 2px 2px 4px;
+    height: 30px;
+    border-bottom: 1px inset blue;
+    margin-bottom: 6px;
+}
+nav {
+    font-size: 18px;
+    display: inline-block;
+}
+nav ul {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    padding-top: 0;
+    margin-top: 10px;
+    display: inline;
+}
+nav ul li {
+    padding-top: 0;
+    margin-top: 0;
+    margin-left: 2em;
+    display: inline;
+}
+nav ul li.selected {
+    text-shadow: #ff00ff 2px 2px 4px;
+}
+div.tracks {
+    display: block;
+    min-width: 100%;
+}
+div.tracks div.track {
+    display: block;
+    position: relative;
+    height: 44px;
+    background: #ddd;
+    margin-bottom: 6px;
+}
+div.tracks div.track .title {
+    position: absolute;
+    top: 4px; left: 2px;
+}
+div.tracks div.track .duration {
+    position: absolute;
+    top: 4px; right: 40px;
+}
+div.tracks div.track .album {
+    position: absolute;
+    font-size: 80%;
+    bottom: 3px; left: 8px;
+}
+div.tracks div.track .artist {
+    position: absolute;
+    font-size: 80%;
+    bottom: 3px; right: 40px;
+}
+div.tracks div.track button {
+    position: absolute;
+    width: 32px; height: 32px; 
+    top: 6px; right: 3px;
+}
+div.tracks div.track span {
+    display: inline;
 }
 
-@media screen and (min-width: 481px) {
-    div.tracks {
-        display: table;
-    }
-    div.tracks div.track {
-        display: table-row;
-    }
-    
-    div.tracks div.header {
-        font-weight: bold;
-    }
-    div.tracks div.header span {
-        border-bottom: 3px;
-    }
-    div.tracks div.track span {
-        display: table-cell;
-        padding: 0 2em 0 0;
-    }
+@media screen and (min-width: 480px) {
 }
-
 
 h2 {
     border-style: inset;
@@ -95,7 +100,7 @@ div#bodge {
 div.search-box input#search-term {
     border: none;
     height: 32px;
-    font-size: 12px;
+    font-size: 18px;
     position: absolute;
     margin: 0 4px; 
     background: transparent;
@@ -125,7 +130,7 @@ span.filters span.filter:after {
 
 
 footer {
-    font-size: 90%;
+    font-size: 14px;
     line-height: 110%;
     background-color: grey;
     color: white;
@@ -133,7 +138,12 @@ footer {
     margin: 2em 0;
     border-top-style: groove;
 }
-
+footer a {
+    color: #ddf;
+}
+footer p {
+    margin: 0 0 3px 0;
+}
 audio {
     margin-top: 1em;
 }

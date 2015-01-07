@@ -20,7 +20,8 @@
       :desktop)))
 
 (defn mobile? []
-  (= (detect-platform) :phone))
+  true
+  #_(= (detect-platform) :phone))
 
 (def app-state
   (atom
@@ -29,6 +30,7 @@
               :results []
               }
      :player-queue []
+     :tab-on-view [:search]
      }))
 
 (defn search-results []
@@ -36,6 +38,9 @@
 
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
+
+(defn tab-on-view []
+  (om/ref-cursor (:tab-on-view (om/root-cursor app-state))))
 
 (defn enqueue-track [track]
   (om/transact! (player-queue) #(conj % track)))
@@ -163,8 +168,8 @@
                         (dom/span #js {:className "duration"} "Length")
                         (dom/button #js {:onClick #(dequeue-all)} "-"))
                (map #(om/build queue-track-view
-                             %1
-                             {:state {:index %2}})
+                               %1
+                               {:state {:index %2}})
                     queue (range 0 999))
                )))))
 
@@ -222,14 +227,21 @@
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
-        bits (best-media-url (first queue))]
-        (dom/div nil
-                 (dom/audio #js {:controls "controls"
+            on-view (om/observe owner (tab-on-view))
+            bits (best-media-url (first queue))
+            player (dom/audio #js {:controls "controls"
                                  :autoPlay "true"
                                  :ref "player"
                                  :src bits
-                                 })
-                 )))))
+                                 })]
+        (if (= (first on-view) :player-queue)
+          (dom/div nil
+                   (om/build queue-view app)
+                   player)
+          (dom/div nil
+                   player))))))
+
+
 
 (defn update-term [[command new-terms] previous]
   (case command
@@ -251,24 +263,52 @@
                 (recur))))))
     om/IRender
     (render [this]
-      (dom/div nil
-               (om/build search-entry-view (:term search)
-                         {:init-state {:string ""}})
-               (dom/h2 nil "results")
-               (om/build results-view (:results search))))))
+      (let [on-view (om/observe owner (tab-on-view))]
+        (if (= (first on-view) :search)
+          (dom/div nil
+                   (om/build search-entry-view (:term search)
+                             {:init-state {:string ""}})
+                   (om/build results-view (:results search))))))))
+
+(defn show-tab [cursor tab-name]
+  (om/update! cursor [:tab-on-view] [tab-name]))
+
+(defn tab-selector-view [app owner]
+  (reify
+    om/IRender
+    (render [this]
+      (let [on-view (om/observe owner (tab-on-view))]
+        (dom/nav nil
+                 (dom/ul nil
+                         (dom/li
+                          #js {:onClick #(show-tab app :search)
+                               :className
+                               (if (= (first on-view) :search)
+                                 "selected"
+                                 "unselected")
+                               }
+                          (dom/span #js {:id "show-library"} "library"))
+                         (dom/li
+                          #js {:onClick #(show-tab app :player-queue)
+                               :className
+                               (if (= (first on-view) :player-queue)
+                                 "selected"
+                                 "unselected")
+                               }
+                          (dom/span #js {:id "show-queue"} "queue"))))))))
+
+
 
 (defn app-view [app owner]
   (reify
     om/IRender
     (render [this]
       (dom/div nil
-               (dom/h1
+               (dom/header
                 #js {:id "sledge"}
-                "sledge")
-
+                "sledge"
+                (om/build tab-selector-view app))
                (om/build search-view (:search app))
-               (dom/h2 nil "queue")
-               (om/build queue-view app)
                (om/build player-view app)
                ))))
 
