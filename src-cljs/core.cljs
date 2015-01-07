@@ -20,7 +20,8 @@
       :desktop)))
 
 (defn mobile? []
-  (= (detect-platform) :phone))
+  true
+  #_(= (detect-platform) :phone))
 
 (def app-state
   (atom
