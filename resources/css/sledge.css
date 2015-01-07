@@ -14,9 +14,11 @@ header {
     font-size: 28px;
     padding: 4px 5px 8px 5px; margin: 0;
     text-shadow: #88d 2px 2px 4px;
-    height: 30px;
+    position: absolute;
+    top: 0;
+    height: 40px;
+    width: 100%;
     border-bottom: 1px inset blue;
-    margin-bottom: 6px;
 }
 nav {
     font-size: 18px;
@@ -128,6 +130,13 @@ span.filters span.filter:after {
     margin-left: 0.5em;
 }
 
+div.scrolling {
+    top: 55px;
+    bottom: 40px;
+    width: 100%;
+    position: absolute;
+    overflow: auto
+}
 
 footer {
     font-size: 14px;
@@ -135,8 +144,11 @@ footer {
     background-color: grey;
     color: white;
     padding: 0.3em 1em;
-    margin: 2em 0;
     border-top-style: groove;
+    position: absolute;
+    bottom: 0px;
+    height: 40px;
+    width: 100%;
 }
 footer a {
     color: #ddf;

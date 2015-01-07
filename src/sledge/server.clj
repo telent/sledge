@@ -131,6 +131,7 @@
     (map (fn [url] [:script {:src url :type "text/javascript"}])
          (:dev scripts))
     [:script "goog.require(\"sledge.core\");"]
+    #_
     [:footer {}
      ;; maybe this can go into a popup or 'about'
      ;; item somewhere
