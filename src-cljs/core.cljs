@@ -159,20 +159,18 @@
   (reify
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))]
-        (apply dom/div #js {:className "queue tracks"}
-               (dom/div #js {:className "track header"}
-                        (dom/span #js {:className "artist"} "Artist")
-                        (dom/span #js {:className "album"} "Album" )
-                        (dom/span #js {:className "title"} "Title")
-                        (dom/span #js {:className "duration"} "Length")
-                        (dom/button #js {:onClick #(dequeue-all)} "-"))
-               (map #(om/build queue-track-view
-                               %1
-                               {:state {:index %2}})
-                    queue (range 0 999))
-               )))))
-
+      (let [queue (om/observe owner (player-queue))
+            on-view (om/observe owner (tab-on-view))]
+        (when (= (first on-view) :player-queue)
+          (apply dom/div #js {:className "queue tracks"}
+                 (dom/div #js {:className "track header"}
+                          (dom/span #js {:className "artist"} "Delete queue")
+                          (dom/button #js {:onClick #(dequeue-all)} "-"))
+                 (map #(om/build queue-track-view
+                                 %1
+                                 {:state {:index %2}})
+                      queue (range 0 999))
+                 ))))))
 
 (defn search-entry-view [term owner]
   (reify
@@ -228,19 +226,11 @@
     (render [this]
       (let [queue (om/observe owner (player-queue))
             on-view (om/observe owner (tab-on-view))
-            bits (best-media-url (first queue))
-            player (dom/audio #js {:controls "controls"
-                                 :autoPlay "true"
-                                 :ref "player"
-                                 :src bits
-                                 })]
-        (if (= (first on-view) :player-queue)
-          (dom/div nil
-                   (om/build queue-view app)
-                   player)
-          (dom/div nil
-                   player))))))
-
+            bits (best-media-url (first queue))]
+        (dom/audio #js {:controls "controls"
+                        :autoPlay "true"
+                        :ref "player"
+                        :src bits})))))
 
 
 (defn update-term [[command new-terms] previous]
@@ -308,8 +298,11 @@
                 #js {:id "sledge"}
                 "sledge"
                 (om/build tab-selector-view app))
-               (om/build search-view (:search app))
-               (om/build player-view app)
+               (dom/div #js {:className "scrolling"}
+                        (om/build search-view (:search app))
+                        (om/build queue-view app))
+               (dom/footer #js {}
+                           (om/build player-view app))
                ))))
 
 (defn init []
