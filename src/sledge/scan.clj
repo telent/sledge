@@ -3,6 +3,8 @@
             [sledge.search :as search]
             [clojure.string :as str]
             [clojure.java.io :as io]
+            [clojure.core.async :as async :refer [>!! >! <! go chan]]
+            [juxt.dirwatch :refer (watch-dir)]
             [green-tags.core :as tags])
   (:import [org.jaudiotagger.audio.exceptions
             CannotReadException InvalidAudioFrameException]))
@@ -23,6 +25,9 @@
        (contains? #{"mp3" "flac" "aac" "ogg" "wma"}
                   (.toLowerCase (file-ext file)))))
 
+(defn changed-since? [time file]
+  (> (.lastModified file) time))
+
 (defn music-files [path]
   (filter music-file? (file-seq (clojure.java.io/file path))))
 
@@ -31,17 +36,52 @@
   index)
 
 (defn upsert-tags [index tags]
+  (println [:update (:pathname tags)])
   (if (first (search/search index {:pathname (:pathname tags)} 1))
     index
     (store-tags index tags)))
 
-;; 26 seconds to index 1000 files
-;; 4.4s to upsert
-
-(defn index-folder [index folder]
-  (reduce store-tags index
-          (map tags (music-files folder))))
-
 (defn freshen-folder [index folder]
   (reduce upsert-tags index
           (map tags (music-files folder))))
+
+(defn watcher-chan [folders]
+  (let [ch (chan)
+        ;; watch-dir invokes its callback in an agent, so won't block
+        ;; the main thread if there's nothing listening to the channel
+        send-events (fn [notif] (>!! ch notif))]
+    (dorun (map #(watch-dir send-events (io/file %)) folders))
+    ch))
+
+(defmulti update-for-file (fn [index o] (:action o)))
+
+(defmethod update-for-file :create [index o]
+  (let [f (:file o)]
+    (when (.isFile f)
+      (println [:scanning f])
+      (freshen-folder index f))))
+
+(defmethod update-for-file :modify [index o]
+  (let [f (:file o)]
+    (println [:modify o])
+    (when (.isFile f)
+      (println [:scanning (:file o)])
+      (freshen-folder index (:file o)))))
+
+(defmethod update-for-file :delete [index o]
+  (println [:deleting (:file o)])
+  #_(clucy/search-and-delete index (str "pathname:" (.getPath (:file o)))))
+
+
+(defn watch-folders [index last-run-time folders]
+  (let [recent (map (fn [folder]
+                      (filter (partial changed-since? last-run-time)
+                              (music-files folder)))
+                    folders)
+        updates (watcher-chan folders)]
+    (go
+     (async/onto-chan updates
+                      (map #(assoc {} :file % :action :modify) (flatten recent))
+                      false)
+     (while true
+       (update-for-file index (<! updates))))))

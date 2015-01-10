@@ -21,13 +21,15 @@
 (defn -main [config-file & more-args]
   (reset! configuration (read-config config-file))
   (let [index-dir (io/file (:index @configuration))]
-    (let [index (clucy/disk-index (.getPath index-dir))]
+    (let [index (clucy/disk-index (.getPath index-dir))
+          folders (:folders @configuration)
+          last-index-time
+          (if (.exists index-dir)  (.lastModified index-dir) 0)
+          ]
+      (when-not (.exists index-dir)
+        (clucy/add index {:version 1 :created  (java.util.Date.)}))
       (reset! search/lucene index)
-      (when (not (.exists index-dir))
-        (dorun (map (fn [d]
-                      (println "creating index for " d)
-                      (scan/index-folder index d))
-                    (:folders @configuration))))))
+      (scan/watch-folders index last-index-time folders)))
   (let [port (:port @configuration)]
     (server/start {:port port})
     (println "Sledge listening on port " port)))
