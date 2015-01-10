@@ -25,7 +25,7 @@
                                    :optimizations :none
                                    :source-map true}}
 
-                       {:id "release"
+                       #_ {:id "release"
                         :source-paths ["src-cljs"]
                         :compiler {
                                    :output-to "resources/production-out/main.js"
