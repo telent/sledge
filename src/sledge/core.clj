@@ -1,6 +1,5 @@
 (ns sledge.core
-  (:require [clucy.core :as clucy]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [sledge.server :as server]
             [sledge.search :as search]
             [sledge.scan :as scan]
@@ -21,13 +20,10 @@
 (defn -main [config-file & more-args]
   (reset! configuration (read-config config-file))
   (let [index-dir (io/file (:index @configuration))]
-    (let [index (clucy/disk-index (.getPath index-dir))
-          folders (:folders @configuration)
-          last-index-time
+    (let [last-index-time
           (if (.exists index-dir)  (.lastModified index-dir) 0)
-          ]
-      (when-not (.exists index-dir)
-        (clucy/add index {:version 1 :created  (java.util.Date.)}))
+          index (search/open-index index-dir)
+          folders (:folders @configuration)]
       (reset! search/lucene index)
       (scan/watch-folders index last-index-time folders)))
   (let [port (:port @configuration)]

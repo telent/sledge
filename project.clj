@@ -14,7 +14,7 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [om "0.8.0-alpha2"]
                  [juxt/dirwatch "0.2.2"]
-                 [clucy "0.4.0"]]
+                 [clue "0.2.1"]]
   :plugins [[lein-cljsbuild "1.0.3"]]
   :hooks [leiningen.cljsbuild]
   :cljsbuild {

@@ -1,7 +1,6 @@
 (ns sledge.server
   (:require [sledge.search :as search]
             [sledge.transcode :as transcode]
-            [clucy.core :as clucy]
             [clojure.core.async :as async]
             [hiccup.core :as h]
             [clojure.string :as str]
@@ -101,7 +100,7 @@
                      "_score" (:_score (meta %))
                      "_links" (media-links %)))]
     (distinct (map project
-                   (clucy/search @search/lucene query num-rows)))))
+                   (search/query @search/lucene query num-rows)))))
 
 (defn tracks-json-handler [req]
   {:status 200

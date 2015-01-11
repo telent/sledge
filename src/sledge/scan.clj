@@ -1,7 +1,7 @@
 (ns sledge.scan
-  (:require [clucy.core :as clucy]
-            [sledge.search :as search]
+  (:require [sledge.search :as search]
             [clojure.string :as str]
+            [clue.core :as clue]
             [clojure.java.io :as io]
             [clojure.core.async :as async :refer [>!! >! <! go chan]]
             [juxt.dirwatch :refer (watch-dir)]
@@ -32,7 +32,7 @@
   (filter music-file? (file-seq (clojure.java.io/file path))))
 
 (defn store-tags [index tags]
-  (clucy/add index tags)
+  (clue/add index (assoc tags "_content" (str/join " " (vals tags))))
   index)
 
 (defn upsert-tags [index tags]
