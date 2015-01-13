@@ -1,7 +1,9 @@
 (ns sledge.db
   (:import [java.util Date])
   (:require [clojure.java.io :as io]
+            [clojure.pprint :refer [pp pprint]]
             [clojure.edn :as edn]
+            [clojure.set :as set]
             [clojure.string :as str])  )
 
 
@@ -34,12 +36,16 @@
 
 
 (defn lower-words [x]
-  (set (remove str/blank? (str/split (.toLowerCase x) #"[ ,.]"))))
+  (set/difference
+   (set (remove str/blank? (str/split (.toLowerCase (or x "")) #"[ ,.()-]")))
+   #{"the"}))
 
 (def adjuncts
-  {:author {:tokenize-tags (comp lower-words :author)
+  {:artist {:tokenize-tags (comp #'lower-words :artist)
             :tokenize-query lower-words}
-   :title {:tokenize-tags (comp lower-words :title)
+   :album {:tokenize-tags (comp #'lower-words :album)
+           :tokenize-query lower-words}
+   :title {:tokenize-tags (comp #'lower-words :title)
            :tokenize-query lower-words}
    })
 
@@ -48,9 +54,27 @@
 ;; and have the end result attached to the primary index
 ;; somehow
 
+(defn adjunctivize [name-map]
+  (reduce
+   (fn [m [attr tok]]
+     (assoc m attr (make-adjunct-index name-map (:tokenize-tags tok))))
+   {}
+   adjuncts))
+
 ;; XXX async updates have to fit into this somehow eventually
 
-;;;
+(defn query-adjunct [index adjunct-name string]
+  (let [tokenizer (:tokenize-query (get adjuncts adjunct-name))
+        tokens (tokenizer string)
+        adjunct-map (get (:adjuncts index) adjunct-name)
+        matches (map #(get adjunct-map %) tokens)]
+    ;; we want to return a collection of pathnames ordered by the number
+    ;; of elements of matches that each appears within
+    (let [num-matches (fn [file]
+                        (count (filter #(contains? % file) matches)))]
+      (sort-by num-matches (set/union matches)))))
+
+
 ;; the main index maps from pathname to hash of tags
 
 (defn open-index [name]
@@ -63,10 +87,12 @@
               (reduce (fn [m [k v]] (assoc m k v))
                       {}
                       (take-while identity forms))))
-          {})]
+          {})
+        adjunct-maps (adjunctivize name-map)
+        ]
     (or (.isDirectory folder) (.mkdir folder))
     (or (.exists logfile) (.createNewFile logfile))
-    {:folder folder :log logfile :data (atom name-map)}
+    {:folder folder :log logfile :data (atom name-map) :adjuncts adjunct-maps}
     ))
 
 (defonce the-index (atom nil))
