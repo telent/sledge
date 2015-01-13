@@ -1,7 +1,7 @@
 (ns sledge.core
   (:require [clojure.string :as str]
-            [sledge.server :as server]
-            [sledge.search :as search]
+            #_[sledge.server :as server]
+            [sledge.db :as db]
             [sledge.scan :as scan]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
@@ -22,10 +22,10 @@
   (let [index-dir (io/file (:index @configuration))]
     (let [last-index-time
           (if (.exists index-dir)  (.lastModified index-dir) 0)
-          index (search/open-index index-dir)
+          index (db/open-index index-dir)
           folders (:folders @configuration)]
-      (reset! search/lucene index)
+      (reset! db/the-index index)
       (scan/watch-folders index last-index-time folders)))
-  (let [port (:port @configuration)]
+  #_(let [port (:port @configuration)]
     (server/start {:port port})
     (println "Sledge listening on port " port)))

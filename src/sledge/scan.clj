@@ -1,7 +1,6 @@
 (ns sledge.scan
-  (:require [sledge.search :as search]
+  (:require [sledge.db :as db]
             [clojure.string :as str]
-            [clue.core :as clue]
             [clojure.java.io :as io]
             [clojure.core.async :as async :refer [>!! >! <! go chan]]
             [juxt.dirwatch :refer (watch-dir)]
@@ -31,20 +30,6 @@
 (defn music-files [path]
   (filter music-file? (file-seq (clojure.java.io/file path))))
 
-(defn store-tags [index tags]
-  (clue/add index (assoc tags "_content" (str/join " " (vals tags))))
-  index)
-
-(defn upsert-tags [index tags]
-  (println [:update (:pathname tags)])
-  (if (first (search/search index {:pathname (:pathname tags)} 1))
-    index
-    (store-tags index tags)))
-
-(defn freshen-folder [index folder]
-  (reduce upsert-tags index
-          (map tags (music-files folder))))
-
 (defn watcher-chan [folders]
   (let [ch (chan)
         ;; watch-dir invokes its callback in an agent, so won't block
@@ -59,14 +44,14 @@
   (let [f (:file o)]
     (when (.isFile f)
       (println [:scanning f])
-      (freshen-folder index f))))
+      (db/save-entry index (tags f)))))
 
 (defmethod update-for-file :modify [index o]
   (let [f (:file o)]
     (println [:modify o])
     (when (.isFile f)
-      (println [:scanning (:file o)])
-      (freshen-folder index (:file o)))))
+      (println [:scanning f])
+      (db/save-entry index (.getPath f) (tags f)))))
 
 (defmethod update-for-file :delete [index o]
   (println [:deleting (:file o)])
