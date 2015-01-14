@@ -68,11 +68,11 @@
         tokens (tokenizer string)
         adjunct-map (get (:adjuncts index) adjunct-name)
         matches (map #(get adjunct-map %) tokens)]
-    ;; we want to return a collection of pathnames ordered by the number
+    ;; return a collection of pathnames ordered by the number
     ;; of elements of matches that each appears within
     (let [num-matches (fn [file]
                         (count (filter #(contains? % file) matches)))]
-      (sort-by num-matches (set/union matches)))))
+      (sort-by num-matches > (apply set/union matches)))))
 
 
 ;; the main index maps from pathname to hash of tags
