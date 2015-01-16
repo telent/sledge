@@ -64,15 +64,55 @@
 ;; XXX async updates have to fit into this somehow eventually
 
 (defn query-adjunct [index adjunct-name string]
-  (let [tokenizer (:tokenize-query (get adjuncts adjunct-name))
+  (let [kw (keyword adjunct-name)
+        tokenizer (:tokenize-query (get adjuncts kw))
         tokens (tokenizer string)
-        adjunct-map (get (:adjuncts index) adjunct-name)
+        adjunct-map (get (:adjuncts index) kw)
         matches (map #(get adjunct-map %) tokens)]
     ;; return a collection of pathnames ordered by the number
     ;; of elements of matches that each appears within
-    (let [num-matches (fn [file]
-                        (count (filter #(contains? % file) matches)))]
-      (sort-by num-matches > (apply set/union matches)))))
+    (let [relevance (fn [file]
+                      (/ (count (filter #(contains? % file) matches))
+                         (count tokens)))]
+      (sort-by second >
+               (map (fn [f] [f (relevance f)])
+                    (apply set/union matches))))))
+
+(defmulti where (fn [index [op & args]] op))
+
+(defmethod where "like" [index [_ attr string]]
+  (query-adjunct index attr string))
+
+(defmethod where "=" [index [_ attr string]]
+  (let [likes (query-adjunct index attr string)
+        names @(:data index)]
+    (filter (fn [[path rel]]
+              (and (>= rel 1)
+                   (let [tags (get names path)]
+                     (= (get tags (keyword attr)) string))))
+	    likes)))
+
+;; We have a bunch of [pathname relevance] for each constituent term
+;; We want the pathnames that appear in all of the lists, with
+;; relevance computed as the product of that pathname's relevance
+;; in each constituent list
+
+(defmethod where "and" [index [_ & terms]]
+  (let [results (map #(into {} (where index %)) terms)
+        i (apply set/intersection (map #(set (keys %)) results))]
+    i))
+
+#_
+(defmethod thing-query "or" [[& terms] index]
+  (let [results (map #(thing-query % index) terms)]
+    (set/union results)))
+
+;; haven't considered numeric fields yet.  need to build some
+;; sorted-maps or similar
+
+#_
+(defmethod thing-query ">" [[_ attr value] index]
+ )
 
 
 ;; the main index maps from pathname to hash of tags
