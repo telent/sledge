@@ -99,8 +99,10 @@
 
 (defmethod where "and" [index [_ & terms]]
   (let [results (map #(into {} (where index %)) terms)
-        i (apply set/intersection (map #(set (keys %)) results))]
-    i))
+        paths (apply set/intersection (map #(set (keys %)) results))]
+    (map (fn [path]
+           [path (reduce * (map #(get % path) results))])
+         paths)))
 
 #_
 (defmethod thing-query "or" [[& terms] index]
