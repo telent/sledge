@@ -47,6 +47,11 @@
            :tokenize-query lower-words}
    :title {:tokenize-tags (comp #'lower-words :title)
            :tokenize-query lower-words}
+   :year {:empty-map (sorted-map)
+          :tokenize-tags #(if-let [y (:year %)]
+                            (vector (Integer/parseInt y))
+                            [])
+          :tokenize-query #(vector (Integer/parseInt %))}
    })
 
 ;; for each entry [k v] in adjuncts, create map entry
@@ -57,7 +62,8 @@
 (defn adjunctivize [name-map]
   (reduce
    (fn [m [attr tok]]
-     (assoc m attr (make-adjunct-index name-map (:tokenize-tags tok))))
+     (let [empty (get tok :empty-map {})]
+       (assoc m attr (assoc-adjunct-index empty name-map (:tokenize-tags tok)))))
    {}
    adjuncts))
 
@@ -112,7 +118,7 @@
          paths)))
 
 ;; haven't considered numeric fields yet.  need to build some
-;; sorted-maps or similar
+;; sorted-maps and then use subseq to get the data out
 
 
 ;; the main index maps from pathname to hash of tags
