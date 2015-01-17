@@ -104,17 +104,15 @@
            [path (reduce * (map #(get % path) results))])
          paths)))
 
-#_
-(defmethod thing-query "or" [[& terms] index]
-  (let [results (map #(thing-query % index) terms)]
-    (set/union results)))
+(defmethod where "or" [index [_ & terms]]
+  (let [results (map #(into {} (where index %)) terms)
+        paths (apply set/union (map #(set (keys %)) results))]
+    (map (fn [path]
+           [path (reduce max (map #(get % path 0) results))])
+         paths)))
 
 ;; haven't considered numeric fields yet.  need to build some
 ;; sorted-maps or similar
-
-#_
-(defmethod thing-query ">" [[_ attr value] index]
- )
 
 
 ;; the main index maps from pathname to hash of tags
