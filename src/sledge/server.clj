@@ -1,5 +1,5 @@
 (ns sledge.server
-  (:require [sledge.search :as search]
+  (:require [sledge.db :as db]
             [sledge.transcode :as transcode]
             [clojure.core.async :as async]
             [hiccup.core :as h]
@@ -68,39 +68,18 @@
    "ogg" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg"},
    "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
 
-(defn query-for-request-params [params]
-  (let [fields [:artist :album :title :year :album-artist :track :genre
-                :encoding-type
-                :length]
-        terms (reduce (fn [terms k]
-                        (if-let [v (get params (name k))]
-                          (assoc terms k v)
-                          terms))
-                      {}
-                      fields)]
-    (and (first terms) (search/stringize-search-map terms))))
-
 ;;  curl -v -XPOST -H'content-type: text/plain' --data-binary 'rhye' http://localhost:53281/tracks.json
 
 (defn tracks-data [req]
   (let [p (:params req)
-        filters (query-for-request-params p)
-        query (str "("
-                   (or (and (= (:request-method req) :post)
-                            (:body req)
-                            (slurp (:body req)))
-                       "TRUE")
-                   ") AND ("
-                   (or filters " TRUE ")
-                   ")")
+        query (json/read-str (if-let [b (:body req)] (slurp b) "[]"))
         num-rows 50
-        project (if-let [f (get p "_fields" ) ]
+        project (if-let [f nil #_ (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))
                   #(assoc %
-                     "_score" (:_score (meta %))
                      "_links" (media-links %)))]
     (distinct (map project
-                   (search/query @search/lucene query num-rows)))))
+                   (take num-rows (db/entries-where @db/the-index query ))))))
 
 (defn tracks-json-handler [req]
   {:status 200
@@ -196,17 +175,13 @@
           (transcode-handler req pathname)
           :else
           {:status 404 :headers {"content-type" "text/plain"}
-           :body "transcoding not implemented"})))
+           :body "transcoding not implemented for requested format"})))
 
 (defn bits-handler [req]
   (let [urlpath (str/split (:uri req) #"/")
         [b64 ext] (str/split (get urlpath 2) #"\.")
         real-pathname (unbase64 b64)]
-    ;; XXX this *really* needs to be an exact match
-    (if-let [r (first (filter
-                       #(= (:pathname %) real-pathname)
-                       (search/search @search/lucene
-                                      {:pathname real-pathname} 100)))]
+    (if-let [r (db/by-pathname @db/the-index real-pathname)]
       (maybe-transcode req real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
 

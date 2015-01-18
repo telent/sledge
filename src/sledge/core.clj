@@ -1,6 +1,6 @@
 (ns sledge.core
   (:require [clojure.string :as str]
-            #_[sledge.server :as server]
+            [sledge.server :as server]
             [sledge.db :as db]
             [sledge.scan :as scan]
             [clojure.edn :as edn]
@@ -26,6 +26,6 @@
           folders (:folders @configuration)]
       (reset! db/the-index index)
       (scan/watch-folders index last-index-time folders)))
-  #_(let [port (:port @configuration)]
+  (let [port (:port @configuration)]
     (server/start {:port port})
     (println "Sledge listening on port " port)))

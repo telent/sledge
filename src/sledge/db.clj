@@ -47,6 +47,8 @@
            :tokenize-query lower-words}
    :title {:tokenize-tags (comp #'lower-words :title)
            :tokenize-query lower-words}
+   ;; numeric field support is a bit rudimentary yet, it doesn't
+   ;; do anything useful with "like".
    :year {:empty-map (sorted-map)
           :tokenize-tags #(if-let [y (:year %)]
                             (vector (Integer/parseInt y))
@@ -98,6 +100,12 @@
                      (= (get tags (keyword attr)) string))))
 	    likes)))
 
+(defn entries-where [index query]
+  (let [data @(:data index)]
+    (map #(if-let [r (get data (first %))]
+            (assoc r :_score (second %)))
+         (where index query))))
+
 ;; We have a bunch of [pathname relevance] for each constituent term
 ;; We want the pathnames that appear in all of the lists, with
 ;; relevance computed as the product of that pathname's relevance
@@ -117,9 +125,9 @@
            [path (reduce max (map #(get % path 0) results))])
          paths)))
 
-;; haven't considered numeric fields yet.  need to build some
-;; sorted-maps and then use subseq to get the data out
 
+(defn by-pathname [index pathname]
+  (get @(:data index) pathname))
 
 ;; the main index maps from pathname to hash of tags
 
