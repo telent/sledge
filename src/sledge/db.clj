@@ -79,7 +79,9 @@
 
 (defn query-adjunct [index adjunct-name string]
   (let [kw (keyword adjunct-name)
-        tokenizer (:tokenize-query (get adjuncts kw))
+        tokenizer (:tokenize-query
+                   (or (get adjuncts kw)
+                       (throw (Exception. "no index for attribute"))))
         tokens (tokenizer string)
         adjunct-map (get (:adjuncts index) kw)
         matches (map #(get adjunct-map %) tokens)]
