@@ -101,15 +101,27 @@
 
 (defmethod where "=" [index [_ attr string]]
   (let [likes (query-adjunct index attr string)
-        names @(:data index)]
+        names (:data index)]
     (filter (fn [[path rel]]
               (and (>= rel 1)
                    (let [tags (get names path)]
                      (= (get tags (keyword attr)) string))))
 	    likes)))
 
+(defn write-log [name-map filename]
+  (with-open [f (io/writer filename)]
+    (binding [*out* f]
+      (dorun (map prn name-map)))))
+
+(defn save-index [index]
+  (let [tmpname (io/file (:folder index) "tmplog.edn")]
+    (write-log (:data index) tmpname)
+    (.renameTo tmpname (:log index))
+    index))
+
 (defn entries-where [index query]
-  (let [data @(:data index)]
+  (and (:dirty index) (save-index index))
+  (let [data (:data index)]
     (map #(if-let [r (get data (first %))]
             (assoc r :_score (second %)))
          (where index query))))
@@ -126,7 +138,7 @@
       (map (fn [path]
              [path (reduce * (map #(get % path) results))])
            paths))
-    (map #(vector % 1) (keys @(:data index)))))
+    (map #(vector % 1) (keys (:data index)))))
 
 (defmethod where "or" [index [_ & terms]]
   (if terms
@@ -139,9 +151,15 @@
 
 
 (defn by-pathname [index pathname]
-  (get @(:data index) pathname))
+  (get (:data index) pathname))
 
 ;; the main index maps from pathname to hash of tags
+
+(defn last-modified [index]
+  (let [log (:log index)]
+    (if (and log (.exists log))
+      (.lastModified log)
+      0)))
 
 (defn open-index [name]
   (let [folder (io/file name)
@@ -158,24 +176,13 @@
         ]
     (or (.isDirectory folder) (.mkdir folder))
     (or (.exists logfile) (.createNewFile logfile))
-    {:folder folder :log logfile :data (atom name-map) :adjuncts adjunct-maps}
+    {:folder folder :log logfile :data name-map :adjuncts adjunct-maps}
     ))
 
-(defonce the-index (atom nil))
-
-
-
-(defn write-log [name-map filename]
-  (with-open [f (io/writer filename)]
-    (binding [*out* f]
-      (dorun (map prn name-map)))))
-
-(defn save-index [index]
-  (let [tmpname (io/file (:folder index) "tmplog.edn")]
-    (write-log @(:data index) tmpname)
-    (.renameTo tmpname (:log index))
-    index))
-
-(defn save-entry [index k v]
-  (swap! (:data index) assoc k v)
+(defn update-entry! [index k v]
+  ;; needs to update the entry in :data and to update the various
+  ;; adjunct indexes as necessary (or at least mark them as needing update)
+  (swap! index #(assoc-in % [:dirty ] true))
+  (swap! index #(assoc-in % [:data k] v))
+  (swap! index #(assoc-in % [:adjuncts] (adjunctivize (:data %))))
   v)

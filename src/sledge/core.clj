@@ -13,19 +13,19 @@
 
 (defonce configuration (atom {}))
 
+;; this is only used for repl and testing
+(defonce the-database (atom nil))
+
 (defn read-config [file]
   (with-open [inf (java.io.PushbackReader. (io/reader file))]
     (edn/read inf)))
 
 (defn -main [config-file & more-args]
   (reset! configuration (read-config config-file))
-  (let [index-dir (io/file (:index @configuration))]
-    (let [last-index-time
-          (if (.exists index-dir)  (.lastModified index-dir) 0)
-          index (db/open-index index-dir)
-          folders (:folders @configuration)]
-      (reset! db/the-index index)
-      (scan/watch-folders index last-index-time folders)))
-  (let [port (:port @configuration)]
-    (server/start {:port port})
-    (println "Sledge listening on port " port)))
+  (let [index (db/open-index (io/file (:index @configuration)))
+        folders (:folders @configuration)]
+    (reset! the-database index)
+    (scan/watch-folders the-database (db/last-modified index) folders)
+    (let [port (:port @configuration)]
+      (server/start index {:port port})
+      (println "Sledge listening on port " port))))

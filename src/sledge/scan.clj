@@ -17,7 +17,7 @@
     :pathname (.getPath f)))
 
 (defn file-ext [file]
-  (last (str/split (.getName (clojure.java.io/file file)) #"\.")))
+  (last (str/split (.getName (io/file file)) #"\.")))
 
 (defn music-file? [file]
   (and (.isFile file)
@@ -40,25 +40,24 @@
 
 (defmulti update-for-file (fn [index o] (:action o)))
 
-(defmethod update-for-file :create [index o]
+(defmethod update-for-file :create [index-ref o]
   (let [f (:file o)]
-    (when (.isFile f)
+    (when (music-file? f)
       (println [:scanning f])
-      (db/save-entry index (tags f)))))
+      (db/update-entry! index-ref (.getPath f) (tags f)))))
 
-(defmethod update-for-file :modify [index o]
+(defmethod update-for-file :modify [index-ref o]
   (let [f (:file o)]
-    (println [:modify o])
-    (when (.isFile f)
+    (when (music-file? f)
       (println [:scanning f])
-      (db/save-entry index (.getPath f) (tags f)))))
+      (db/update-entry! index-ref (.getPath f) (tags f)))))
 
-(defmethod update-for-file :delete [index o]
+(defmethod update-for-file :delete [index-ref o]
   (println [:deleting (:file o)])
   #_(clucy/search-and-delete index (str "pathname:" (.getPath (:file o)))))
 
 
-(defn watch-folders [index last-run-time folders]
+(defn watch-folders [index-ref last-run-time folders]
   (let [recent (map (fn [folder]
                       (filter (partial changed-since? last-run-time)
                               (music-files folder)))
@@ -69,4 +68,4 @@
                       (map #(assoc {} :file % :action :modify) (flatten recent))
                       false)
      (while true
-       (update-for-file index (<! updates))))))
+       (update-for-file index-ref (<! updates))))))

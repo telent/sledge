@@ -79,13 +79,12 @@
                   #(assoc %
                      "_links" (media-links %)))]
     (distinct (map project
-                   (take num-rows (db/entries-where @db/the-index query ))))))
+                   (take num-rows (db/entries-where (:db req) query ))))))
 
 (defn tracks-json-handler [req]
   {:status 200
    :headers {"Content-type" "text/json"}
    :body (json/write-str (tracks-data req))})
-
 
 (def scripts
   {:dev ["/react/react.js"
@@ -181,7 +180,7 @@
   (let [urlpath (str/split (:uri req) #"/")
         [b64 ext] (str/split (get urlpath 2) #"\.")
         real-pathname (unbase64 b64)]
-    (if-let [r (db/by-pathname @db/the-index real-pathname)]
+    (if-let [r (db/by-pathname (:db req) real-pathname)]
       (maybe-transcode req real-pathname (:encoding-type r) ext)
       {:status 404 :body "not found"})))
 
@@ -194,11 +193,16 @@
      :else ((ringo front-page-view) req)
      )))
 
+
 (def app (res/wrap-resource (wp/wrap-params #'routes) "/"))
+
+(defn wrap-db [app db]
+  (fn [request]
+    (app (assoc request :db @db))))
 
 (defonce server (atom nil))
 
-(defn start [options]
+(defn start [db-ref options]
   (let [opts (merge {:port 53281} options)]
     (println [:opts opts])
-    (reset! server (http/start-server #'app opts))))
+    (reset! server (http/start-server (wrap-db #'app db-ref) opts))))
