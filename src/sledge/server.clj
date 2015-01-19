@@ -71,8 +71,8 @@
 ;;  curl -v -XPOST -H'content-type: text/plain' --data-binary 'rhye' http://localhost:53281/tracks.json
 
 (defn tracks-data [req]
-  (let [p (:params req)
-        query (json/read-str (if-let [b (:body req)] (slurp b) "[]"))
+  (let [body (if-let [b (:body req)] (slurp b) "[]")
+        query (json/read-str body)
         num-rows 50
         project (if-let [f nil #_ (get p "_fields" ) ]
                   #(select-keys % (map keyword (str/split f #",")))

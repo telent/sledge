@@ -92,6 +92,9 @@
 
 (defn xhr-search [term]
   (let [term (filter second term)
+        json-term (apply vector "and"
+                         (map (fn [[k v]] ["like" (name k) v]) term))
+        body (.stringify js/JSON (clj->js json-term))
         channel (chan)]
     (.send XhrIo "/tracks.json"
            (fn [e]
@@ -100,9 +103,7 @@
                    o (and (< code 400) (js->clj (.getResponseJson xhr)))]
                (put! channel (or o []))))
            "POST"
-           (string/join
-            " AND "
-            (map (fn [[k v]] (str (name k) ": " (pr-str v))) term))
+           body
            {"Content-Type" "text/plain"}
            )
     channel))
