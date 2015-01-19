@@ -118,19 +118,22 @@
 ;; in each constituent list
 
 (defmethod where "and" [index [_ & terms]]
-  (let [results (map #(into {} (where index %)) terms)
-        _ (println results)
-        paths (apply set/intersection (map #(set (keys %)) results))]
-    (map (fn [path]
-           [path (reduce * (map #(get % path) results))])
-         paths)))
+  (if terms
+    (let [results (map #(into {} (where index %)) terms)
+          paths (apply set/intersection (map #(set (keys %)) results))]
+      (map (fn [path]
+             [path (reduce * (map #(get % path) results))])
+           paths))
+    (map #(vector % 1) (keys @(:data index)))))
 
 (defmethod where "or" [index [_ & terms]]
-  (let [results (map #(into {} (where index %)) terms)
-        paths (apply set/union (map #(set (keys %)) results))]
-    (map (fn [path]
-           [path (reduce max (map #(get % path 0) results))])
-         paths)))
+  (if terms
+    (let [results (map #(into {} (where index %)) terms)
+          paths (apply set/union (map #(set (keys %)) results))]
+      (map (fn [path]
+             [path (reduce max (map #(get % path 0) results))])
+           paths))
+    []))
 
 
 (defn by-pathname [index pathname]
