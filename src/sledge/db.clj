@@ -172,5 +172,5 @@
     index))
 
 (defn save-entry [index k v]
-  (swap! (:data index) assoc k (assoc v "_content" (str/join " " (vals v))))
+  (swap! (:data index) assoc k v)
   v)
