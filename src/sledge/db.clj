@@ -47,6 +47,12 @@
            :tokenize-query lower-words}
    :title {:tokenize-tags (comp #'lower-words :title)
            :tokenize-query lower-words}
+   :_content {:tokenize-tags (fn [r]
+                               (lower-words
+                                (str/join " "
+                                          ((juxt :artist :album :title :genre)
+                                           r))))
+              :tokenize-query lower-words}
    ;; numeric field support is a bit rudimentary yet, it doesn't
    ;; do anything useful with "like".
    :year {:empty-map (sorted-map)
@@ -113,6 +119,7 @@
 
 (defmethod where "and" [index [_ & terms]]
   (let [results (map #(into {} (where index %)) terms)
+        _ (println results)
         paths (apply set/intersection (map #(set (keys %)) results))]
     (map (fn [path]
            [path (reduce * (map #(get % path) results))])
