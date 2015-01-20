@@ -57,7 +57,9 @@
    ;; do anything useful with "like".
    :year {:empty-map (sorted-map)
           :tokenize-tags #(if-let [y (:year %)]
-                            (vector (Integer/parseInt y))
+                            (try [(Integer/parseInt y)]
+                                 (catch NumberFormatException e
+                                   []))
                             [])
           :tokenize-query #(vector (Integer/parseInt %))}
    })
