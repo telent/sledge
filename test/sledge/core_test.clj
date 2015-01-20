@@ -62,7 +62,7 @@
   (first
    (filter #(= (tx/text (tx/find-element-under % {:class "artist"}))
                artist)
-           (tx/elements "div.results.tracks div.track"))))
+           (rest (tx/elements "div.results.tracks div.track")))))
 
 (deftest the-more-tests
   (testing  "search for text"

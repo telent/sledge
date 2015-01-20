@@ -13,7 +13,7 @@
                  [org.clojure/clojurescript "0.0-2411"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [om "0.8.0-alpha2"]
-                 [clucy "0.4.0"]]
+                 [juxt/dirwatch "0.2.2"]]
   :plugins [[lein-cljsbuild "1.0.3"]]
   :hooks [leiningen.cljsbuild]
   :cljsbuild {
@@ -25,7 +25,7 @@
                                    :optimizations :none
                                    :source-map true}}
 
-                       {:id "release"
+                       #_ {:id "release"
                         :source-paths ["src-cljs"]
                         :compiler {
                                    :output-to "resources/production-out/main.js"
