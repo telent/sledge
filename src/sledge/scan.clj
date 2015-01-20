@@ -2,7 +2,8 @@
   (:require [sledge.db :as db]
             [clojure.string :as str]
             [clojure.java.io :as io]
-            [clojure.core.async :as async :refer [>!! >! <! go chan]]
+            [clojure.core.async :as async
+             :refer [timeout >!! >! <! alts! go chan]]
             [juxt.dirwatch :refer (watch-dir)]
             [green-tags.core :as tags])
   (:import [org.jaudiotagger.audio.exceptions
@@ -68,4 +69,7 @@
                       (map #(assoc {} :file % :action :modify) (flatten recent))
                       false)
      (while true
-       (update-for-file index-ref (<! updates))))))
+       (let [[v c] (alts! [updates (timeout (* 30 1000))])]
+         (if v
+           (update-for-file index-ref v)
+           (swap! index-ref db/save-index)))))))

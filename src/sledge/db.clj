@@ -181,10 +181,12 @@
     ))
 
 (defn save-index [index]
-  (let [tmpname (io/file (:folder index) "tmplog.edn")]
-    (write-log (:data index) tmpname)
-    (.renameTo tmpname (:log index)))
-  index)
+  (when (:dirty index)
+    (println "Saving...")
+    (let [tmpname (io/file (:folder index) "tmplog.edn")]
+      (write-log (:data index) tmpname)
+      (.renameTo tmpname (:log index))))
+  (assoc index :dirty false))
 
 (defn update-entry [db k v]
   (let [data (assoc (:data db) k v)]
