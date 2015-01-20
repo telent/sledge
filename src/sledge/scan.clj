@@ -44,13 +44,13 @@
   (let [f (:file o)]
     (when (music-file? f)
       (println [:scanning f])
-      (db/update-entry! index-ref (.getPath f) (tags f)))))
+      (swap! index-ref db/update-entry (.getPath f) (tags f)))))
 
 (defmethod update-for-file :modify [index-ref o]
   (let [f (:file o)]
     (when (music-file? f)
       (println [:scanning f])
-      (db/update-entry! index-ref (.getPath f) (tags f)))))
+      (swap! index-ref db/update-entry (.getPath f) (tags f)))))
 
 (defmethod update-for-file :delete [index-ref o]
   (println [:deleting (:file o)])

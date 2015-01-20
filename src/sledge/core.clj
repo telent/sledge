@@ -23,9 +23,10 @@
 (defn -main [config-file & more-args]
   (reset! configuration (read-config config-file))
   (let [index (db/open-index (io/file (:index @configuration)))
+        since (db/last-modified index)
         folders (:folders @configuration)]
     (reset! the-database index)
-    (scan/watch-folders the-database (db/last-modified index) folders)
+    (scan/watch-folders the-database since folders)
     (let [port (:port @configuration)]
-      (server/start index {:port port})
+      (server/start the-database {:port port})
       (println "Sledge listening on port " port))))

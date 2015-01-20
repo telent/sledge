@@ -40,12 +40,21 @@
    (set (remove str/blank? (str/split (.toLowerCase (or x "")) #"[ ,.()-]")))
    #{"the"}))
 
-(def adjuncts
+(defn safe-read-integer [s]
+  (try (Integer/parseInt s)
+       (catch NumberFormatException e nil)))
+
+(def adjuncts-schema
   {:artist {:tokenize-tags (comp #'lower-words :artist)
             :tokenize-query lower-words}
    :album {:tokenize-tags (comp #'lower-words :album)
            :tokenize-query lower-words}
    :title {:tokenize-tags (comp #'lower-words :title)
+           :tokenize-query lower-words}
+   ;; I have the feeling genre is in practice something useless like
+   ;; a number inside parens.  Sort that out before adding this index
+   #_ #_
+   :genre {:tokenize-tags (comp #'lower-words :genre)
            :tokenize-query lower-words}
    :_content {:tokenize-tags (fn [r]
                                (lower-words
@@ -56,36 +65,33 @@
    ;; numeric field support is a bit rudimentary yet, it doesn't
    ;; do anything useful with "like".
    :year {:empty-map (sorted-map)
-          :tokenize-tags #(if-let [y (:year %)]
-                            (try [(Integer/parseInt y)]
-                                 (catch NumberFormatException e
-                                   []))
-                            [])
-          :tokenize-query #(vector (Integer/parseInt %))}
+          :tokenize-tags #(if-let [y (safe-read-integer (get % :year ""))]
+                            [y] [])
+          :tokenize-query #(vector (safe-read-integer %))}
    })
 
-;; for each entry [k v] in adjuncts, create map entry
+;; for each entry [k v] in adjuncts-schema, create map entry
 ;; from k to (make-adjunct-index name-map (:tokenize-tags v))
 ;; and have the end result attached to the primary index
 ;; somehow
 
 (defn adjunctivize [name-map]
+  (println "reindexing ...")
   (reduce
    (fn [m [attr tok]]
      (let [empty (get tok :empty-map {})]
        (assoc m attr (assoc-adjunct-index empty name-map (:tokenize-tags tok)))))
    {}
-   adjuncts))
+   adjuncts-schema))
 
-;; XXX async updates have to fit into this somehow eventually
 
 (defn query-adjunct [index adjunct-name string]
   (let [kw (keyword adjunct-name)
         tokenizer (:tokenize-query
-                   (or (get adjuncts kw)
+                   (or (get adjuncts-schema kw)
                        (throw (Exception. "no index for attribute"))))
         tokens (tokenizer string)
-        adjunct-map (get (:adjuncts index) kw)
+        adjunct-map (get @(:adjuncts index) kw)
         matches (map #(get adjunct-map %) tokens)]
     ;; return a collection of pathnames ordered by the number
     ;; of elements of matches that each appears within
@@ -115,14 +121,7 @@
     (binding [*out* f]
       (dorun (map prn name-map)))))
 
-(defn save-index [index]
-  (let [tmpname (io/file (:folder index) "tmplog.edn")]
-    (write-log (:data index) tmpname)
-    (.renameTo tmpname (:log index))
-    index))
-
 (defn entries-where [index query]
-  (and (:dirty index) (save-index index))
   (let [data (:data index)]
     (map #(if-let [r (get data (first %))]
             (assoc r :_score (second %)))
@@ -174,17 +173,22 @@
                       {}
                       (take-while identity forms))))
           {})
-        adjunct-maps (adjunctivize name-map)
+        adjunct-maps (delay (adjunctivize name-map))
         ]
     (or (.isDirectory folder) (.mkdir folder))
-    (or (.exists logfile) (.createNewFile logfile))
-    {:folder folder :log logfile :data name-map :adjuncts adjunct-maps}
+    {:folder folder :log logfile :data name-map :adjuncts adjunct-maps
+     :dirty false}
     ))
 
-(defn update-entry! [index k v]
-  ;; needs to update the entry in :data and to update the various
-  ;; adjunct indexes as necessary (or at least mark them as needing update)
-  (swap! index #(assoc-in % [:dirty ] true))
-  (swap! index #(assoc-in % [:data k] v))
-  (swap! index #(assoc-in % [:adjuncts] (adjunctivize (:data %))))
-  v)
+(defn save-index [index]
+  (let [tmpname (io/file (:folder index) "tmplog.edn")]
+    (write-log (:data index) tmpname)
+    (.renameTo tmpname (:log index)))
+  index)
+
+(defn update-entry [db k v]
+  (let [data (assoc (:data db) k v)]
+    (assoc db
+      :dirty true
+      :data data
+      :adjuncts (delay (adjunctivize data)))))
