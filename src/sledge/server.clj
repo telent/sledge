@@ -9,6 +9,7 @@
             [manifold.stream :as manifold]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
+            [simple-brepl.service :refer [brepl-js]]
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
@@ -99,6 +100,7 @@
    [:head
     [:title "Sledge"]
     [:meta {:name "viewport" :content "initial-scale=1.0"}]
+    [:script (brepl-js)]
     [:link {:rel "stylesheet"
             :type "text/css"
             :href "/css/sledge.css"

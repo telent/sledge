@@ -8,6 +8,7 @@
             [cljs.core.async :as async :refer [>! <! put! chan]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
+            [simple-brepl.client]
             ))
 
 (enable-console-print!)

@@ -10,11 +10,12 @@
                  [aleph "0.4.0-alpha9"]
                  [ring "1.3.2"]
                  [org.clojure/data.json "0.2.5"]
-                 [org.clojure/clojurescript "0.0-2411"]
+                 [org.clojure/clojurescript "0.0-2665"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [om "0.8.0-alpha2"]
                  [juxt/dirwatch "0.2.2"]]
-  :plugins [[lein-cljsbuild "1.0.3"]]
+  :plugins [[lein-cljsbuild "1.0.3"]
+            [jarohen/simple-brepl "0.2.1"]]
   :hooks [leiningen.cljsbuild]
   :cljsbuild {
               :builds [{:id "dev"
