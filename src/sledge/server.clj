@@ -110,17 +110,6 @@
     (map (fn [url] [:script {:src url :type "text/javascript"}])
          (:dev scripts))
     [:script "goog.require(\"sledge.core\");"]
-    #_
-    [:footer {}
-     ;; maybe this can go into a popup or 'about'
-     ;; item somewhere
-     [:p "Copyright &copy;2014 Daniel Barlow"]
-     [:p
-      [:a {:href "http://www.gnu.org/licenses/agpl.html"}
-       "GNU Affero General Public Licence"]
-      " | "
-      [:a {:href "http://github.com/telent/sledge"}
-       "Download"]]]
     ]])
 
 
