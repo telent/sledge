@@ -32,6 +32,12 @@
               }
      :player-queue []
      :tab-on-view [:search]
+     :player {:track-number 0
+              :playing false
+              :track-offset 0
+              :track-offset-when 0
+              :source nil
+              }
      }))
 
 (defn search-results []
@@ -307,7 +313,16 @@
                            (om/build player-view app))
                ))))
 
+(defn sync-transport [_ ref o n]
+  (let [desired (:player n)
+        actual (aget (.getElementsByTagName js/document "audio") 0)]
+    (if-not (= (.-src actual) (:source desired))
+      (set! (.-src actual) (:source desired)))
+    (if (= (.-paused actual) (:playing desired))
+      (set! (.-paused actual) (not (:playing desired))))))
+
 (defn init []
+  (add-watch app-state :transport sync-transport)
   (let [el (. js/document (getElementById "om-app"))
         search (chan)]
     (om/root app-view app-state
