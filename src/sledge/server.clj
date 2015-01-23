@@ -136,18 +136,16 @@
         chan (async/chan)
         thr (future
               (let [buf (byte-array 4096)]
-                (with-open [writer (java.io.FileOutputStream. "/tmp/y.ogg")]
-                  (loop []
-                    (let [w (.read transcode-stream buf)]
-                      (cond (> w 0)
-                            (do
-                              (.write writer buf 0 w)
-                              (async/>!!
-                               chan
-                               (java.util.Arrays/copyOf buf w))
-                              (recur))
-                            (< w 0)
-                            (async/close! chan)))))))]
+                (loop []
+                  (let [w (.read transcode-stream buf)]
+                    (cond (> w 0)
+                          (do
+                            (async/>!!
+                             chan
+                             (java.util.Arrays/copyOf buf w))
+                            (recur))
+                          (< w 0)
+                          (async/close! chan))))))]
     chan))
 
 (defn transcode-handler [request pathname]
