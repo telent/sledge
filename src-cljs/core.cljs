@@ -33,7 +33,7 @@
      :player-queue []
      :tab-on-view [:search]
      :player {:track-number 0
-              :playing false
+              :playing true
               :track-offset 0
               :track-offset-when 0
               :source nil
