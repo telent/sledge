@@ -41,10 +41,10 @@
 ;; JAudioTagger
 
 (def encoding-types
-  {"mp3" {:mime "audio/mpeg" :suffix "mp3" :transcode ["ogg"]}
-   "FLAC 16 bits" {:mime "audio/flac" :suffix "flac" :transcode ["mp3" "ogg"]}
-   "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))"
-   {:mime "audio/x-ms-asf" :suffix "asf" :transcode []}
+  {"mp3" {:suffix "mp3" :transcode ["ogg"]}
+   "Ogg Vorbis v1" {:suffix "ogg" :transcode []}
+   "FLAC 16 bits" {:suffix "flac" :transcode ["mp3" "ogg"]}
+   "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))" {:suffix "asf" :transcode []}
    })
 
 (defn media-links [r]
@@ -126,6 +126,7 @@
    "mp3" "audio/mpeg"
    "flac" "audio/flac"
    "wav" "audio/x-wav"
+   "asf" "audio/x-ms-asf"
    })
 
 (defn mime-type-for-ext [ext]
