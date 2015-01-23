@@ -36,7 +36,6 @@
               :playing true
               :track-offset 0
               :track-offset-when 0
-              :source nil
               }
      }))
 
@@ -48,6 +47,24 @@
 
 (defn tab-on-view []
   (om/ref-cursor (:tab-on-view (om/root-cursor app-state))))
+
+(defn player-state []
+  (om/ref-cursor (:player (om/root-cursor app-state))))
+
+(defn player-pause []
+  (om/transact! (player-state) #(update-in % [:playing] not)))
+
+(defn player-next []
+  ;; how do we make this fail if there are no more tracks?
+  (om/transact! (player-state) #(update-in % [:track-number] inc)))
+
+(defn player-prev []
+  (let [dec0 #(max (dec %) 0)]
+    (om/transact! (player-state) #(update-in % [:track-number] dec0))))
+
+
+(defn player-el []
+  (aget (.getElementsByTagName js/document "audio") 0))
 
 (defn enqueue-track [track]
   (om/transact! (player-queue) #(conj % track)))
@@ -229,16 +246,19 @@
       (let [el (om/get-node owner)]
         ;; last arg "true" is cos audio events don't bubble
         ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el "ended" #(dequeue-track 0) true)))
+        (.addEventListener el "ended" player-next true)))
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
-            on-view (om/observe owner (tab-on-view))
-            bits (best-media-url (first queue))]
-        (dom/audio #js {:controls "controls"
-                        :autoPlay "true"
-                        :ref "player"
-                        :src bits})))))
+            on-view (om/observe owner (tab-on-view))]
+        (dom/span #js {}
+                  (dom/button #js { :onClick player-pause }
+                              ">")
+                  (dom/button #js { :onClick player-next }
+                              ">>|")
+                  (dom/button #js { :onClick player-prev }
+                              "|<<")
+                  (dom/audio #js {:ref "player"}))))))
 
 
 (defn update-term [[command new-terms] previous]
@@ -313,13 +333,37 @@
                            (om/build player-view app))
                ))))
 
+(defn music-in-queue? [tracknum offset]
+  (let [queue (player-queue)
+        track (nth queue tracknum nil)]
+    (if track
+      (let [len (get track "length" 0)]
+        (if (>= len offset)
+          [track offset]
+          (music-in-queue? (inc track) (- offset len))))
+      nil)))
+
 (defn sync-transport [_ ref o n]
   (let [desired (:player n)
-        actual (aget (.getElementsByTagName js/document "audio") 0)]
-    (if-not (= (.-src actual) (:source desired))
-      (set! (.-src actual) (:source desired)))
-    (if (= (.-paused actual) (:playing desired))
-      (set! (.-paused actual) (not (:playing desired))))))
+        actual (player-el)
+        [urls offset] (music-in-queue?
+                       (:track-number desired) (:track-offset desired))]
+
+    ;; find out what track we should be playing
+    (let [bits (best-media-url urls)]
+      (if-not (= (.-src actual) bits)
+        (set! (.-src actual) bits)))
+
+    (when (and (.-paused actual) (:playing desired) urls)
+      ;; it might have paused because it reached the end of track, or
+      ;; because the user previously paused it.  If we have music available,
+      ;; now, resume
+      ; (set! (.-currentTime actual) offset)
+      (.play actual))
+
+    (if-not (:playing desired)
+      (.pause actual))))
+
 
 (defn init []
   (add-watch app-state :transport sync-transport)
