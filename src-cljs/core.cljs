@@ -54,9 +54,19 @@
 (defn player-pause []
   (om/transact! (player-state) #(update-in % [:playing] not)))
 
+(defn current-track []
+  (nth (player-queue) (:track-number (player-state)) nil))
+
 (defn player-next []
   ;; how do we make this fail if there are no more tracks?
   (om/transact! (player-state) #(update-in % [:track-number] inc)))
+
+(defn player-playing [e]
+  (let [player (.-target e)
+        offset (.-currentTime player)]
+    (om/transact! (player-state)
+                  #(update-in % [:track-offset]
+                              (fn [time] offset)))))
 
 (defn player-prev []
   (let [dec0 #(max (dec %) 0)]
@@ -79,7 +89,7 @@
 
 (defn mmss [seconds]
   (let [m (quot seconds 60)
-        s (- seconds (* 60 m))]
+        s (- (Math/floor seconds) (* 60 m))]
     (str m ":" (.substr (str "000" s) -2))))
 
 
@@ -246,7 +256,8 @@
       (let [el (om/get-node owner)]
         ;; last arg "true" is cos audio events don't bubble
         ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el "ended" player-next true)))
+        (.addEventListener el "ended" player-next true)
+        (.addEventListener el "timeupdate" player-playing true)))
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
@@ -258,6 +269,11 @@
                               ">>|")
                   (dom/button #js { :onClick player-prev }
                               "|<<")
+                  (dom/span #js {:className "elapsed-time time"}
+                            (mmss (:track-offset (player-state))))
+                  " / "
+                  (dom/span #js {:className "track-time"}
+                            (mmss (get (current-track) "length" 0)))
                   (dom/audio #js {:ref "player"}))))))
 
 
@@ -350,8 +366,10 @@
                        (:track-number desired) (:track-offset desired))]
 
     ;; find out what track we should be playing
-    (let [bits (best-media-url urls)]
-      (if-not (= (.-src actual) bits)
+    (let [bits (best-media-url urls)
+          actual-path (.getPath (goog.Uri. (.-src actual)))]
+      (when-not (= actual-path bits)
+        (println ["want " bits " got " (.-src actual)])
         (set! (.-src actual) bits)))
 
     (when (and (.-paused actual) (:playing desired) urls)
