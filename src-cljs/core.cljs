@@ -375,8 +375,9 @@
     (when (and (.-paused actual) (:playing desired) urls)
       ;; it might have paused because it reached the end of track, or
       ;; because the user previously paused it.  If we have music available,
-      ;; now, resume
-      ; (set! (.-currentTime actual) offset)
+      ;; now, resume.
+      ;; On Android, this appears to trigger the generation of an ended event
+      ;; that might not otherwise get sent, which is nice.  However,
       (.play actual))
 
     (if-not (:playing desired)
