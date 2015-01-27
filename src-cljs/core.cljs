@@ -346,6 +346,12 @@
                         (om/build search-view (:search app))
                         (om/build queue-view app))
                (dom/footer #js {}
+                           #_#_#_
+                           (dom/span #js {:onClick print-debuggy-stuff }
+                                     "debug")
+                           "  "
+                           (dom/span #js {:onClick sync-transport }
+                                     "sync")
                            (om/build player-view app))
                ))))
 
@@ -353,6 +359,15 @@
   (let [queue (player-queue)]
     (nth queue tracknum nil)))
 
+(defn print-debuggy-stuff []
+  (let [p (player-el)]
+    (println [(.-currentTime p)
+              (.-duration p)
+              (.-paused p)
+              (.-networkState p)
+              (.-ended p)
+              (:track-number (player-state))
+              ])))
 
 (defn sync-transport [_ ref o n]
   (let [desired (:player n)
