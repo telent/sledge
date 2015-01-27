@@ -332,29 +332,6 @@
                           (dom/span #js {:id "show-queue"} "queue"))))))))
 
 
-
-(defn app-view [app owner]
-  (reify
-    om/IRender
-    (render [this]
-      (dom/div nil
-               (dom/header
-                #js {:id "sledge"}
-                "sledge"
-                (om/build tab-selector-view app))
-               (dom/div #js {:className "scrolling"}
-                        (om/build search-view (:search app))
-                        (om/build queue-view app))
-               (dom/footer #js {}
-                           #_#_#_
-                           (dom/span #js {:onClick print-debuggy-stuff }
-                                     "debug")
-                           "  "
-                           (dom/span #js {:onClick sync-transport }
-                                     "sync")
-                           (om/build player-view app))
-               ))))
-
 (defn music-in-queue? [tracknum]
   (let [queue (player-queue)]
     (nth queue tracknum nil)))
@@ -391,6 +368,28 @@
     (if-not (:playing desired)
       (.pause actual))))
 
+
+(defn app-view [app owner]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/div nil
+               (dom/header
+                #js {:id "sledge"}
+                "sledge"
+                (om/build tab-selector-view app))
+               (dom/div #js {:className "scrolling"}
+                        (om/build search-view (:search app))
+                        (om/build queue-view app))
+               (dom/footer #js {}
+                           #_#_#_
+                           (dom/span #js {:onClick print-debuggy-stuff }
+                                     "debug")
+                           "  "
+                           (dom/span #js {:onClick sync-transport }
+                                     "sync")
+                           (om/build player-view app))
+               ))))
 
 (defn init []
   (add-watch app-state :transport sync-transport)
