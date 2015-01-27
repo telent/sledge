@@ -1,14 +1,14 @@
 ;;; -*- Clojure -*- mode
 (ns sledge.core
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
-  (:import [goog.net XhrIo])
+  (:import [goog.net XhrIo] goog.Uri)
   (:require [goog.events :as events]
+            [cljsjs.react :as React]
             [clojure.string :as string]
             [clojure.set :as set]
             [cljs.core.async :as async :refer [>! <! put! chan]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [simple-brepl.client]
             ))
 
 (enable-console-print!)

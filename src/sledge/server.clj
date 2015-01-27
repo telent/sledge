@@ -12,9 +12,10 @@
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
-(if (System/getProperty "enable_brepl")
-  (require '[simple-brepl.service :refer [brepl-js]])
-  (defn brepl-js [] ""))
+(defonce enable-brepl (System/getProperty "enable_brepl"))
+(when enable-brepl
+  (require '[simple-brepl.service ])
+  (println "browser repl enabled"))
 
 (defn base64 [string]
   (Base64/encodeBase64URLSafeString (.getBytes string)))
@@ -90,19 +91,18 @@
    :body (json/write-str (tracks-data req))})
 
 (def scripts
-  {:dev ["/react/react.js"
-         "out/goog/base.js"
-         "out/main.js"]
+  {:dev ["out/main.js"]
    :production ["production-out/main.js"]
    })
-
 
 (defn front-page-view [req]
   [:html
    [:head
     [:title "Sledge"]
     [:meta {:name "viewport" :content "initial-scale=1.0"}]
-    [:script (brepl-js)]
+    [:script (if enable-brepl
+               ((ns-resolve 'simple-brepl.service 'brepl-js))
+               "/* no brepl */")]
     [:link {:rel "stylesheet"
             :type "text/css"
             :href "/css/sledge.css"
@@ -110,18 +110,14 @@
    [:body
     [:div {:id "om-app"}]
     (map (fn [url] [:script {:src url :type "text/javascript"}])
-         (:dev scripts))
-    [:script "goog.require(\"sledge.core\");"]
+         (get scripts (if enable-brepl :dev :production)))
     ]])
-
 
 (defn ringo [view]
   (fn [req]
     {:status 200
      :headers {"Content-type" "text/html; charset=UTF-8"}
      :body (h/html (view req))}))
-
-
 
 (def mime-types
   {"ogg" "audio/ogg"
