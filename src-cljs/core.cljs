@@ -349,21 +349,15 @@
                            (om/build player-view app))
                ))))
 
-(defn music-in-queue? [tracknum offset]
-  (let [queue (player-queue)
-        track (nth queue tracknum nil)]
-    (if track
-      (let [len (get track "length" 0)]
-        (if (>= len offset)
-          [track offset]
-          (music-in-queue? (inc track) (- offset len))))
-      nil)))
+(defn music-in-queue? [tracknum]
+  (let [queue (player-queue)]
+    (nth queue tracknum nil)))
+
 
 (defn sync-transport [_ ref o n]
   (let [desired (:player n)
         actual (player-el)
-        [urls offset] (music-in-queue?
-                       (:track-number desired) (:track-offset desired))]
+        urls (music-in-queue? (:track-number desired))]
 
     ;; find out what track we should be playing
     (let [bits (best-media-url urls)
