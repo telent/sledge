@@ -13,8 +13,8 @@
   (assoc
       (try
         (tags/get-all-info f)
-        (catch InvalidAudioFrameException e {:exception e})
-        (catch CannotReadException e {:exception e}))
+        (catch InvalidAudioFrameException e {:exception (.toString e)})
+        (catch CannotReadException e {:exception (.toString e)}))
     :pathname (.getPath f)))
 
 (defn file-ext [file]
