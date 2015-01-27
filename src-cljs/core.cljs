@@ -368,8 +368,7 @@
     ;; find out what track we should be playing
     (let [bits (best-media-url urls)
           actual-path (.getPath (goog.Uri. (.-src actual)))]
-      (when-not (= actual-path bits)
-        (println ["want " bits " got " (.-src actual)])
+      (when (and bits (not (= actual-path bits)))
         (set! (.-src actual) bits)))
 
     (when (and (.-paused actual) (:playing desired) urls)
