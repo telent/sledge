@@ -2,4 +2,4 @@
   (:require [simple-brepl.client]))
 
 (if (.-log js/console)
-  (println "hey from brepl"))
+  (.log js/console "hey from brepl"))
