@@ -20,10 +20,6 @@
       600 :tablet
       :desktop)))
 
-(defn mobile? []
-  true
-  #_(= (detect-platform) :phone))
-
 (def app-state
   (atom
     {:search {
@@ -119,9 +115,8 @@
             duration (dom/span #js {:className "duration"} (mmss (get track "length")))
             button (dom/button #js {:onClick #(enqueue-track @track)} "+")]
         (apply dom/div #js {:className "track"}
-               (if (mobile?)
-                 [title artist album duration button]
-                 [artist album title duration button]))))))
+               [title artist album duration button]
+               )))))
 
 
 (defn xhr-search [term]
@@ -160,21 +155,13 @@
                     "+")
             track-components
             (om/build-all results-track-view tracks)]
-        (if (mobile?)
-          (apply dom/div #js {:className "results tracks" }
-                 (dom/div #js {:className "track"}
-                          (dom/span {:id "queue-all-tracks"}
-                                    "Queue all tracks")
-                          button)
-                 track-components)
-          (apply dom/div #js {:className "results tracks" }
-                 (dom/div #js {:className "track header"}
-                          (dom/span #js {:className "artist"} "Artist")
-                          (dom/span #js {:className "album"} "Album" )
-                          (dom/span #js {:className "title"} "Title")
-                          (dom/span #js {:className "duration"} "Length")
-                          button)
-                 track-components))))
+        (apply dom/div #js {:className "results tracks" }
+               (dom/div #js {:className "track"}
+                        (dom/span {:id "queue-all-tracks"}
+                                  "Queue all tracks")
+                        button)
+               track-components)
+        ))
     ))
 
 
