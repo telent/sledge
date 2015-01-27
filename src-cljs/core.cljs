@@ -13,13 +13,6 @@
 
 (enable-console-print!)
 
-(defn detect-platform []
-  (let [w (.-innerWidth js/window)]
-    (condp > w
-      480 :phone
-      600 :tablet
-      :desktop)))
-
 (def app-state
   (atom
     {:search {
