@@ -14,8 +14,7 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [om "0.8.0-alpha2"]
                  [juxt/dirwatch "0.2.2"]]
-  :plugins [[lein-cljsbuild "1.0.3"]
-            [jarohen/simple-brepl "0.2.1"]]
+  :plugins [[lein-cljsbuild "1.0.3"]]
   :hooks [leiningen.cljsbuild]
   :cljsbuild {
               :builds [{:id "dev"
@@ -44,6 +43,12 @@
                                   [org.seleniumhq.selenium/selenium-java "2.44.0"]
                                   [org.seleniumhq.selenium/selenium-server "2.44.0"]
                                   [org.seleniumhq.selenium/selenium-remote-driver "2.44.0"]
-
-                                  [clj-webdriver "0.6.1"]]}}
+                                  [clj-webdriver "0.6.1"]]
+                   }
+             :brepl {
+                     :jvm-opts ["-Denable_brepl=true"]
+                     :dependencies [[clojure-complete "0.2.3"]
+                                    [org.clojure/tools.nrepl "0.2.7"]]
+                     :plugins [[jarohen/simple-brepl "0.2.1"]]
+                     }}
   )

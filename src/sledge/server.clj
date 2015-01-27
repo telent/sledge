@@ -9,10 +9,12 @@
             [manifold.stream :as manifold]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
-            [simple-brepl.service :refer [brepl-js]]
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
+(if (System/getProperty "enable_brepl")
+  (require '[simple-brepl.service :refer [brepl-js]])
+  (defn brepl-js [] ""))
 
 (defn base64 [string]
   (Base64/encodeBase64URLSafeString (.getBytes string)))
