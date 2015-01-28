@@ -223,10 +223,17 @@
                                   })))
         ))))
 
+(defn can-play? [player media-type codec]
+  (= "probably"
+     (.canPlayType player
+                   (if codec (str media-type "; codecs=" codec) media-type))))
+
+
 (defn best-media-url [r]
   (let [urls (get r "_links")]
     (get
-     (or (get urls "ogg") (get urls "mp3"))
+     (first (filter #(can-play? (player-el) (get % "type") (get % "codecs"))
+                    (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
 (defn player-view [app owner]

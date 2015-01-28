@@ -44,11 +44,15 @@
 ;; JAudioTagger
 
 (def encoding-types
-  {"mp3" {:suffix "mp3" :transcode ["ogg"]}
-   "Ogg Vorbis v1" {:suffix "ogg" :transcode []}
-   "FLAC 16 bits" {:suffix "flac" :transcode ["mp3" "ogg"]}
-   "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))" {:suffix "asf" :transcode []}
-   })
+  {"mp3" {:suffix "mp3" :transcode #{"ogg"}}
+   "Ogg Vorbis v1" {:suffix "ogg" :transcode #{}}
+   "FLAC 16 bits" {:suffix "flac" :transcode #{"mp3" "ogg"}}
+   "ASF (audio): 0x0161 (Windows Media Audio (ver 7,8,9))"
+   {:suffix "asf" :transcode #{}}})
+
+(defn can-encode-as? [from to]
+  (some #(and (= (:suffix %) from) (contains? (:transcode %) to))
+        (vals encoding-types)))
 
 (defn media-links [r]
   (let [e-t (:encoding-type r)
@@ -60,19 +64,29 @@
                                         ))))
         basename (base64 (:pathname r))]
     (reduce (fn [h fmt]
-              (assoc h fmt { "href" (str "/bits/" basename "."  fmt)}))
+              (assoc h fmt { "href" (str "/bits/" basename "."  fmt)
+                             "codecs" (codec-for-ext fmt)
+                             "type" (mime-type-for-ext fmt)}))
             {}
             (conj (seq (:transcode enc)) (:suffix enc)))))
+
+(media-links {:encoding-type "FLAC 16 bits"
+              :pathname "/path/to/audio.flac"})
+
 
 (assert
  (=
   (media-links {:encoding-type "FLAC 16 bits"
                 :pathname "/path/to/audio.flac"})
-  {"mp3" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3"},
-   "ogg" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg"},
-   "flac" {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac"}}))
+  {"mp3"
+   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3", "codecs" "mp3", "type" "audio/mpeg"},
+   "ogg"
+   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg", "codecs" "vorbis", "type" "audio/ogg"}
+   "flac"
+   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}}))
 
-;;  curl -v -XPOST -H'content-type: text/plain' --data-binary 'rhye' http://localhost:53281/tracks.json
+:; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
+
 
 (defn tracks-data [req]
   (let [body (if-let [b (:body req)] (slurp b) "[]")
@@ -130,8 +144,15 @@
 (defn mime-type-for-ext [ext]
   (get mime-types (.toLowerCase ext)))
 
-(defn transcode-chan [pathname]
-  (let [transcode-stream (transcode/to-ogg pathname)
+(defn codec-for-ext [ext]
+  (case (.toLowerCase ext)
+    "mp3" "mp3"
+    "ogg" "vorbis"
+    "wav" "1"
+    nil))
+
+(defn transcode-chan [pathname format]
+  (let [transcode-stream (transcode/avconv pathname format)
         chan (async/chan)
         thr (future
               (let [buf (byte-array 4096)]
@@ -147,10 +168,14 @@
                           (async/close! chan))))))]
     chan))
 
-(defn transcode-handler [request pathname]
-  {:status 200
-   :headers {"content-type" "audio/ogg"}
-   :body (manifold/->source (transcode-chan pathname))})
+(defn transcode-handler [request pathname to-format]
+  (let [mime-type (mime-type-for-ext to-format)
+        content-type (if-let [c (codec-for-ext to-format)]
+                       (str mime-type "; codecs=" c)
+                       mime-type)]
+    {:status 200
+     :headers {"content-type" content-type}
+     :body (manifold/->source (transcode-chan pathname to-format))}))
 
 (defn maybe-transcode [req pathname from to]
   (let [from (:suffix (get encoding-types from))
@@ -158,8 +183,8 @@
     (cond (= from to)
           {:status 200 :headers {"content-type" mime-type}
            :body (clojure.java.io/file pathname)}
-          (= to "ogg")
-          (transcode-handler req pathname)
+          (can-encode-as? from to)
+          (transcode-handler req pathname to)
           :else
           {:status 404 :headers {"content-type" "text/plain"}
            :body "transcoding not implemented for requested format"})))
