@@ -54,6 +54,24 @@
   (some #(and (= (:suffix %) from) (contains? (:transcode %) to))
         (vals encoding-types)))
 
+(def mime-types
+  {"ogg" "audio/ogg"
+   "mp3" "audio/mpeg"
+   "flac" "audio/flac"
+   "wav" "audio/x-wav"
+   "asf" "audio/x-ms-asf"
+   })
+
+(defn mime-type-for-ext [ext]
+  (get mime-types (.toLowerCase ext)))
+
+(defn codec-for-ext [ext]
+  (case (.toLowerCase ext)
+    "mp3" "mp3"
+    "ogg" "vorbis"
+    "wav" "1"
+    nil))
+
 (defn media-links [r]
   (let [e-t (:encoding-type r)
         enc (or (get encoding-types e-t)
@@ -85,7 +103,7 @@
    "flac"
    {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}}))
 
-:; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
+;  :; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
 
 
 (defn tracks-data [req]
@@ -133,23 +151,6 @@
      :headers {"Content-type" "text/html; charset=UTF-8"}
      :body (h/html (view req))}))
 
-(def mime-types
-  {"ogg" "audio/ogg"
-   "mp3" "audio/mpeg"
-   "flac" "audio/flac"
-   "wav" "audio/x-wav"
-   "asf" "audio/x-ms-asf"
-   })
-
-(defn mime-type-for-ext [ext]
-  (get mime-types (.toLowerCase ext)))
-
-(defn codec-for-ext [ext]
-  (case (.toLowerCase ext)
-    "mp3" "mp3"
-    "ogg" "vorbis"
-    "wav" "1"
-    nil))
 
 (defn transcode-chan [pathname format]
   (let [transcode-stream (transcode/avconv pathname format)
