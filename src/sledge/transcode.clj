@@ -6,14 +6,15 @@
 
 (defn avconv [filename format]
   (let [rt (Runtime/getRuntime)
+        bin (or (System/getenv "AVCONV") "/usr/bin/avconv")
         codec (get {"ogg" "libvorbis"
                     "mp3" "libmp3lame"}
                    format)
         p (.exec rt
                  (into-array
-                  ["/usr/bin/avconv",
-                   "-i",
-                   filename,
+                  [bin
+                   "-i"
+                   filename
                    "-f"
                    format
                    "-c"
