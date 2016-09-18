@@ -10,7 +10,6 @@
             CannotReadException InvalidAudioFrameException])
   (:gen-class))
 
-
 (defonce configuration (atom {}))
 
 ;; this is only used for repl and testing

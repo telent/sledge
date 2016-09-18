@@ -22,6 +22,7 @@
                                      out-name))
                         :output-dir (.getPath target))]
         (when (seq inputs)
-          (util/info "Compiling %d Clojurescript sources...\n" (count inputs))
-          (cljsc/build (apply cljsc/inputs inputs) opts)))
+          (util/info "Compiling %d Clojurescript sources..." (count inputs))
+          (cljsc/build (apply cljsc/inputs inputs) opts)
+          (util/info "done\n")))
       (-> fileset (core/add-resource target) core/commit!))))
