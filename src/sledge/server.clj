@@ -197,7 +197,8 @@
     (cond
      (.startsWith u "/tracks.json") (tracks-json-handler req)
      (.startsWith u "/bits/") (bits-handler req)
-     :else ((ringo front-page-view) req)
+     (= u "/") ((ringo front-page-view) req)
+     :else {:status 404 :headers {} :body "not found"}
      )))
 
 
