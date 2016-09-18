@@ -10,17 +10,12 @@
         codec (get {"ogg" "libvorbis"
                     "mp3" "libmp3lame"}
                    format)
-        p (.exec rt
-                 (into-array
-                  [bin
-                   "-i"
-                   filename
-                   "-f"
-                   format
-                   "-c"
-                   codec
-                   "pipe:"])
-                 )
+        args  [bin
+               "-i" filename
+               "-f" format
+               "-codec:a" codec
+               "pipe:"]
+        p (.exec rt (into-array args))
         out (.getInputStream p)         ; my in is your out
         err (.getErrorStream p)]
     out))
