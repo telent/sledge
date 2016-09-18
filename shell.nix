@@ -6,9 +6,9 @@ let sourceFilesOnly = path: type:
 in stdenv.mkDerivation {
     name = "sledge";
     src = builtins.filterSource sourceFilesOnly ./.;
-    buildInputs = [ boot openjdk nodejs ffmpeg ];
+    buildInputs = [ boot openjdk nodejs ffmpeg-full ];
     M2REPOSITORY = ''m2repo'';
-    AVCONV = "${ffmpeg.bin}/bin/ffmpeg";
+    AVCONV = "${ffmpeg-full}/bin/ffmpeg";
     buildPhase = ''
       boot build
     '';
