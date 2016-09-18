@@ -19,16 +19,18 @@
  pom {:project 'sledge
       :version "0.1.1"}
  jar {:main 'sledge.core}
- cljs {:main 'sledge.core :output-file "assets/js/main.js"}
+ cljs {:main 'sledge.core
+       :options {:optimizations :advanced}
+       :output-file "assets/js/main.js"}
  target {:dir #{"target/"}})
 
 
 (deftask build []
   (comp
-;   (aot :namespace #{'sledge.core})
+   (aot :namespace #{'sledge.core})
    (pom)
    (cljs)
-;   (uber)
-;   (jar)
-;   (sift :include #{#"project.jar$"})
+   (uber)
+   (jar)
+   (sift :include #{#"project.jar$"})
    (target)))
