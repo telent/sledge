@@ -20,7 +20,8 @@
       :version "0.1.1"}
  jar {:main 'sledge.core}
  cljs {:main 'sledge.core
-       :options {:optimizations :advanced}
+       :optimizations :none
+       :options {}
        :output-file "assets/js/main.js"}
  target {:dir #{"target/"}})
 
@@ -29,7 +30,7 @@
   (comp
    (aot :namespace #{'sledge.core})
    (pom)
-   (cljs)
+   (cljs :optimizations :advanced)
    (uber)
    (jar)
    (sift :include #{#"project.jar$"})

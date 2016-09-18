@@ -38,7 +38,7 @@ repl in one and have automatic cljs recompilation in the other
 ```
 window1$ boot cider cljs repl
 
-window2$ boot watch cljs
+window2$ boot watch cljs -O none
 ```
 
 Now point your web browser at http://localhost:53281
