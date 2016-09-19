@@ -2,6 +2,9 @@
  :resource-paths #{"resources"}
  :source-paths #{"src" "cljs"}
  :dependencies '[[org.clojure/clojure "1.8.0"]
+                 [com.cemerick/piggieback "0.2.1"]
+                 [org.clojure/tools.nrepl "0.2.12"]
+                 [weasel "0.7.0" :exclusions [org.clojure/clojurescript]]
                  [green-tags "0.3.0-alpha"]
                  [hiccup "1.0.5"]
                  [boot-deps "0.1.6"]
@@ -14,6 +17,8 @@
                  [juxt/dirwatch "0.2.3"]])
 
 (require '[sledge.boot-build :refer :all])
+(require '[weasel.repl.websocket])
+(require '[cemerick.piggieback])
 
 (task-options!
  pom {:project 'sledge
@@ -25,6 +30,9 @@
        :output-file "assets/js/main.js"}
  target {:dir #{"target/"}})
 
+(defn wait-for-browser-repl []
+  (cemerick.piggieback/cljs-repl
+   (weasel.repl.websocket/repl-env :ip "0.0.0.0" :port 9001)))
 
 (deftask build []
   (comp
