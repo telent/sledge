@@ -46,6 +46,12 @@ Now point your web browser at http://localhost:53281
 There is no browser repl in this branch.  I will reintroduce it as
 soon as I figure out how.
 
+> something like this:
+> run `boot cider repl`
+> and therein invoke (wait-for-browser-repl)
+> then in a browser open the console and run `window.repl()`
+
+
 ## Securing it
 
 Don't run this on an untrusted network.  It's had no real security
