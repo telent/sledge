@@ -1,4 +1,3 @@
-;;; -*- Clojure -*- mode
 (ns sledge.core
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:import [goog.net XhrIo] goog.Uri)

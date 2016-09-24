@@ -6,20 +6,16 @@
 
 (defn avconv [filename format]
   (let [rt (Runtime/getRuntime)
+        bin (or (System/getenv "AVCONV") "/usr/bin/avconv")
         codec (get {"ogg" "libvorbis"
                     "mp3" "libmp3lame"}
                    format)
-        p (.exec rt
-                 (into-array
-                  ["/usr/bin/avconv",
-                   "-i",
-                   filename,
-                   "-f"
-                   format
-                   "-c"
-                   codec
-                   "pipe:"])
-                 )
+        args  [bin
+               "-i" filename
+               "-f" format
+               "-codec:a" codec
+               "pipe:"]
+        p (.exec rt (into-array args))
         out (.getInputStream p)         ; my in is your out
         err (.getErrorStream p)]
     out))

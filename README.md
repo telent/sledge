@@ -15,34 +15,42 @@ First create a configuration file to tell it where your music collection is and 
 
 ```
 $ cat sledge.conf.edn
-{:index "/srv/media/.sledge/"
- :folders ["/srv/media/Music/"]
+{:index "/home/dan/.sledge/"
+ :folders ["/home/dan/Music/"]
  :port 53281
 }
 ```
 
-## Running in development mode
-
-I have not as yet managed to figure out why the leiningen `dev` profile appears to be loaded even when making uberjars.  Until I do (and all advice on that score is welcome), it is necessary to use an additional profile to include dev-only configuration such as the browser repl
-
-    $ lein with-profile +brepl cljsbuild auto
-    # and in another window
-    $ lein with-profile +brepl repl
-    sledge.core=> (-main "conf.edn")
-
-Now point your web browser at http://localhost:53281
-
-A websocket-based browser repl is available, assuming your browser
-supports websockets: run `(user/simple-brepl)` in the Clojure REPL to
-start it.
-
-
 ## Running in deployment mode
 
-    $ lein with-profile uberjar do clean, cljsbuild once, uberjar
-    $ java -jar target/uberjar+uberjar/sledge-0.1.0-SNAPSHOT-standalone.jar sledge.conf.edn
+    $ boot build
+    $ java -jar target/project.jar sledge.conf.edn
 
 Now point your web browser at http://localhost:53281
+
+
+## Running in development mode (terminal-based)
+
+It helps to have two terminal windows open so that you can run a
+Clojure repl in one and Clojurescript in the other.
+
+
+```
+window1$ boot cljs -O whitespace pig repl
+
+window2$ boot repl -c -e '(wait-for-browser-repl)'
+```
+
+You should get a prompt 
+```
+<< started Weasel server on ws://0.0.0.0:9001 >>
+<< waiting for client to connect ...  
+```
+
+Now go to http://localhost:53281/, open the browser console, and
+evaluate `browser.repl()` 
+
+Adding CIDER to this is left as an exercise for the reader.
 
 
 ## Securing it
@@ -51,8 +59,10 @@ Don't run this on an untrusted network.  It's had no real security
 review and it runs external commands.
 
 I started looking at what it would take to add SSL, but it's kind of
-involved.  If you're running a Linux-like OS, you can use stud as an
-SSL proxy: set up would be something like this -
+involved, and unlikely to be as secure as running a separate HTTPS
+proxy which has been audited by someone who know what they're doing.
+If you're running a Linux-like OS, you can use stud as an SSL proxy:
+setup would be something like this -
 
 ```
 $ openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out
@@ -75,7 +85,7 @@ instead.
 
 ## Copyright
 
-Copyright © 2014,2015 Daniel Barlow
+Copyright © 2014-2016 Daniel Barlow
 
 Distributed under the GNU Affero General Public License, which means
 this is free software but that if you run it for the benefit of people

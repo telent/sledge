@@ -119,7 +119,7 @@
 (defn write-log [name-map filename]
   (with-open [f (io/writer filename)]
     (binding [*out* f]
-      (dorun (map prn name-map)))))
+      (dorun (map (fn [[k v]] (prn [k (dissoc v :artwork-data)])) name-map)))))
 
 (defn entries-where [index query]
   (let [data (:data index)]
