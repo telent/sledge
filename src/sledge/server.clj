@@ -12,12 +12,6 @@
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
-#_#_
-(defonce enable-brepl (System/getProperty "enable_brepl"))
-(when enable-brepl
-  (require '[simple-brepl.service ])
-  (println "browser repl enabled"))
-
 (defn base64 [string]
   (Base64/encodeBase64URLSafeString (.getBytes string)))
 
