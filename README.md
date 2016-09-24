@@ -29,27 +29,28 @@ $ cat sledge.conf.edn
 Now point your web browser at http://localhost:53281
 
 
-## Running in development mode
+## Running in development mode (terminal-based)
 
-It helps to have two terminal windows open so that you can run the
-repl in one and have automatic cljs recompilation in the other
+It helps to have two terminal windows open so that you can run a
+Clojure repl in one and Clojurescript in the other.
 
 
 ```
-window1$ boot cider cljs repl
+window1$ boot cljs -O whitespace pig repl
 
-window2$ boot watch cljs -O none
+window2$ boot repl -c -e '(wait-for-browser-repl)'
 ```
 
-Now point your web browser at http://localhost:53281
+You should get a prompt 
+```
+<< started Weasel server on ws://0.0.0.0:9001 >>
+<< waiting for client to connect ...  
+```
 
-There is no browser repl in this branch.  I will reintroduce it as
-soon as I figure out how.
+Now go to http://localhost:53281/, open the browser console, and
+evaluate `browser.repl()` 
 
-> something like this:
-> run `boot cider repl`
-> and therein invoke (wait-for-browser-repl)
-> then in a browser open the console and run `window.repl()`
+Adding CIDER to this is left as an exercise for the reader.
 
 
 ## Securing it
@@ -61,7 +62,7 @@ I started looking at what it would take to add SSL, but it's kind of
 involved, and unlikely to be as secure as running a separate HTTPS
 proxy which has been audited by someone who know what they're doing.
 If you're running a Linux-like OS, you can use stud as an SSL proxy:
-set up would be something like this -
+setup would be something like this -
 
 ```
 $ openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out

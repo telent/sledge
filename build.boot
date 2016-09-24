@@ -30,6 +30,13 @@
        :output-file "assets/js/main.js"}
  target {:dir #{"target/"}})
 
+(deftask pig
+  "Piggieback nrepl middleware"
+  []
+  (swap! @(resolve 'boot.repl/*default-middleware*)
+         concat '[cemerick.piggieback/wrap-cljs-repl])
+  identity)
+
 (defn wait-for-browser-repl []
   (cemerick.piggieback/cljs-repl
    (weasel.repl.websocket/repl-env :ip "0.0.0.0" :port 9001)))
