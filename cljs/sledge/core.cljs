@@ -150,7 +150,7 @@
             (om/build-all results-track-view tracks)]
         (apply dom/div #js {:className "results tracks" }
                (dom/div #js {:className "track"}
-                        (dom/span {:id "queue-all-tracks"}
+                        (dom/span #js {:id "queue-all-tracks"}
                                   "Queue all tracks")
                         button)
                track-components)
