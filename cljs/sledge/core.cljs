@@ -20,6 +20,7 @@
               :results []
               }
      :player-queue []
+     :viewing-queue? false
      :tab-on-view [:search]
      :player {:track-number 0
               :playing true
@@ -236,7 +237,7 @@
                     (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
-(defn player-view [app owner]
+(defn minimised-queue-view [app owner]
   (reify
     om/IDidMount
     (did-mount [this]
@@ -284,12 +285,10 @@
                 (recur))))))
     om/IRender
     (render [this]
-      (let [on-view (om/observe owner (tab-on-view))]
-        (if (= (first on-view) :search)
-          (dom/div nil
-                   (om/build search-entry-view (:term search)
-                             {:init-state {:string ""}})
-                   (om/build results-view (:results search))))))))
+      (dom/div nil
+               (om/build search-entry-view (:term search)
+                         {:init-state {:string ""}})
+               (om/build results-view (:results search))))))
 
 (defn show-tab [cursor tab-name]
   (om/update! cursor [:tab-on-view] [tab-name]))
@@ -356,29 +355,17 @@
       (.pause actual))))
 
 
-(defn app-view [app owner]
+(defn app-view [state owner]
   (reify
     om/IRender
     (render [this]
-      (dom/div nil
-               (dom/header
-                #js {:id "sledge"
-                     :className "default-primary-color"
-                     }
-                "sledge"
-                (om/build tab-selector-view app))
-               (dom/div #js {:className "scrolling"}
-                        (om/build search-view (:search app))
-                        (om/build queue-view app))
-               (dom/footer #js {}
-                           #_#_#_
-                           (dom/span #js {:onClick print-debuggy-stuff }
-                                     "debug")
-                           "  "
-                           (dom/span #js {:onClick sync-transport }
-                                     "sync")
-                           (om/build player-view app))
-               ))))
+      (html
+       [:div
+        [:header {:className "default-primary-color" } "sledge"]
+        (om/build search-view (:search state))
+        (if (:viewing-queue? state)
+          (om/build queue-view state)
+          (om/build minimised-queue-view state))]))))
 
 (defn init []
   (add-watch app-state :transport sync-transport)
