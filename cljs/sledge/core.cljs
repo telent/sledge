@@ -5,6 +5,7 @@
             [cljsjs.react :as React]
             [clojure.string :as string]
             [clojure.set :as set]
+            [sablono.core :as html :refer-macros [html]]
             [cljs.core.async :as async :refer [>! <! put! chan]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]

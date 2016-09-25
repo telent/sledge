@@ -13,7 +13,8 @@
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/clojurescript "1.9.229"]
                  [org.clojure/core.async "0.2.391"]
-                 [org.omcljs/om "0.9.0"]
+                 [org.omcljs/om "1.0.0-alpha44"]
+                 [sablono "0.7.4"]
                  [juxt/dirwatch "0.2.3"]])
 
 (require '[sledge.boot-build :refer :all])
@@ -25,7 +26,7 @@
       :version "0.1.1"}
  jar {:main 'sledge.core}
  cljs {:main 'sledge.core
-       :optimizations :none
+       :optimizations :whitespace
        :options {}
        :output-file "assets/js/main.js"}
  target {:dir #{"target/"}})
