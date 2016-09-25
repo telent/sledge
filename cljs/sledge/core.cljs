@@ -299,24 +299,24 @@
     om/IRender
     (render [this]
       (let [on-view (om/observe owner (tab-on-view))]
-        (dom/nav nil
-                 (dom/ul nil
-                         (dom/li
-                          #js {:onClick #(show-tab app :search)
-                               :className
-                               (if (= (first on-view) :search)
-                                 "selected"
-                                 "unselected")
-                               }
-                          (dom/span #js {:id "show-library"} "library"))
-                         (dom/li
-                          #js {:onClick #(show-tab app :player-queue)
-                               :className
-                               (if (= (first on-view) :player-queue)
-                                 "selected"
-                                 "unselected")
-                               }
-                          (dom/span #js {:id "show-queue"} "queue"))))))))
+        (html
+         [:nav {}
+          [:ul {}
+           [:li {:onClick #(show-tab app :search)
+                 :className
+                 (if (= (first on-view) :search)
+                   "selected"
+                   "unselected")
+                 }
+            [:span {:id "show-library"} "library"]]
+           [:li
+            {:onClick #(show-tab app :player-queue)
+             :className
+             (if (= (first on-view) :player-queue)
+               "selected"
+               "unselected")
+             }
+            [:span  {:id "show-queue"} "queue"]]]])))))
 
 
 (defn music-in-queue? [tracknum]
