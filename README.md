@@ -31,14 +31,16 @@ Now point your web browser at http://localhost:53281
 
 ## Running in development mode (terminal-based)
 
-It helps to have two terminal windows open so that you can run a
-Clojure repl in one and Clojurescript in the other.
+There are probably as many ways to do this as there are people who
+want to.
 
+I run three windows to (a) start an nrepl server, (b) rebuild cljs
+files, (c) run a cljs repl
 
 ```
-window1$ boot cljs -O whitespace pig repl
-
-window2$ boot repl -c -e '(wait-for-browser-repl)'
+window1$ boot pig repl
+window2$ boot watch cljs -O whitespace target -d dev-target
+window3$ boot repl -c -e '(wait-for-browser-repl)'
 ```
 
 You should get a prompt 

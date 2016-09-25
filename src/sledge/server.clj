@@ -5,10 +5,12 @@
             [hiccup.core :as h]
             [clojure.string :as str]
             [clojure.data.json :as json]
+            [clojure.java.io :as io]
             [aleph.http :as http]
             [manifold.stream :as manifold]
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
+            [ring.util.response :as response]
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
@@ -125,6 +127,10 @@
     [:link {:rel "stylesheet"
             :type "text/css"
             :href "/assets/css/sledge.css"
+            }]
+        [:link {:rel "stylesheet"
+            :type "text/css"
+            :href "/assets/css/palette.css"
             }]]
    [:body
     [:div {:id "om-app"}]
@@ -195,16 +201,32 @@
      :else {:status 404 :headers {} :body "not found"}
      )))
 
-
-(def app (res/wrap-resource (wp/wrap-params #'routes) "/"))
+(defn wrap-target-dir [app dir]
+  (fn [request]
+    (let [n (subs (:uri request) 1)
+          f (io/file dir n)]
+      (if (.isFile f)
+        (response/file-response (.getPath f))
+        (app request)))))
 
 (defn wrap-db [app db]
   (fn [request]
     (app (assoc request :db @db))))
+
+(def app
+  (-> routes
+      wp/wrap-params
+      (res/wrap-resource "/")
+      (wrap-target-dir "dev-target")))
+
 
 (defonce server (atom nil))
 
 (defn start [db-ref options]
   (let [opts (merge {:port 53281} options)]
     (println [:opts opts])
-    (reset! server (http/start-server (wrap-db #'app db-ref) opts))))
+    (when @server
+      (.close @server))
+    (reset! server (http/start-server
+                    (wrap-db #'app db-ref)
+                    opts))))

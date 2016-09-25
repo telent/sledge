@@ -361,7 +361,9 @@
     (render [this]
       (dom/div nil
                (dom/header
-                #js {:id "sledge"}
+                #js {:id "sledge"
+                     :className "default-primary-color"
+                     }
                 "sledge"
                 (om/build tab-selector-view app))
                (dom/div #js {:className "scrolling"}
