@@ -167,12 +167,40 @@
                (dom/button #js {:onClick #(dequeue-track index)}
                            "-")))))
 
+(defn minimised-queue-view [app owner]
+  (reify
+    om/IDidMount
+    (did-mount [this]
+      (let [el (om/get-node owner)]
+        ;; last arg "true" is cos audio events don't bubble
+        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
+        (.addEventListener el "ended" player-next true)
+        (.addEventListener el "timeupdate" player-playing true)))
+    om/IRender
+    (render [this]
+      (let [queue (om/observe owner (player-queue))]
+        (html
+         [:div {
+                :onClick #(om/transact! app [:viewing-queue?] not)
+                }
+          [:span  {}
+           [:button {:onClick player-pause } ">"]
+           [:button {:onClick player-next } ">>|"]
+           [:button {:onClick player-prev } "|<<"]
+           [:span {:className "elapsed-time time"}
+            (mmss (:track-offset (player-state)))]
+           " / "
+           [:span {:className "track-time"}
+            (mmss (get (current-track) "length" 0))]]])))))
+
 (defn queue-view [app owner]
   (reify
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))]
-        (apply dom/div #js {:className "queue tracks"}
+        (apply dom/div #js {}
+               (dom/div #js {}
+                        (om/build minimised-queue-view app))
                (dom/div #js {:className "track header"}
                         (dom/span #js {:className "artist"} "Delete queue")
                         (dom/button #js {:onClick #(dequeue-all)} "-"))
@@ -231,31 +259,7 @@
                     (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
-(defn minimised-queue-view [app owner]
-  (reify
-    om/IDidMount
-    (did-mount [this]
-      (let [el (om/get-node owner)]
-        ;; last arg "true" is cos audio events don't bubble
-        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el "ended" player-next true)
-        (.addEventListener el "timeupdate" player-playing true)))
-    om/IRender
-    (render [this]
-      (let [queue (om/observe owner (player-queue))]
-        (dom/span #js {}
-                  (dom/button #js { :onClick player-pause }
-                              ">")
-                  (dom/button #js { :onClick player-next }
-                              ">>|")
-                  (dom/button #js { :onClick player-prev }
-                              "|<<")
-                  (dom/span #js {:className "elapsed-time time"}
-                            (mmss (:track-offset (player-state))))
-                  " / "
-                  (dom/span #js {:className "track-time"}
-                            (mmss (get (current-track) "length" 0)))
-                  )))))
+
 
 
 (defn update-term [[command new-terms] previous]
@@ -328,9 +332,12 @@
        [:div
         [:header {:className "default-primary-color" } "sledge"]
         (om/build search-view (:search state))
-        (if (:viewing-queue? state)
-          (om/build queue-view state)
-          (om/build minimised-queue-view state))
+        [:div {:className
+               (if (:viewing-queue? state) "queue queue-open tracks"
+                   "queue tracks")}
+         (if (:viewing-queue? state)
+           (om/build queue-view state)
+           (om/build minimised-queue-view state))]
         [:audio {:ref "player"}]]))))
 
 (defn init []

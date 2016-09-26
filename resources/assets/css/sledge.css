@@ -131,6 +131,19 @@ span.filters span.filter:after {
     margin-left: 0.5em;
 }
 
+div.queue {
+    background-color: #222;
+    position: fixed;
+    bottom: 0;
+    max-height: 40px;
+    width: 100%;
+    transition: max-height 0.5s;
+}
+div.queue-open {
+    max-height: 90%;
+    transition: max-height 0.2s;
+}
+
 div.scrolling {
     top: 55px;
     bottom: 40px;
