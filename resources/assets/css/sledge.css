@@ -5,12 +5,8 @@ body {
     padding: 0; margin: 0;
 }
 
-@media screen and (max-width: 480px) {
-    /* mobile-specific layout will eventually go here */
-}
 header { 
     font-weight: normal;
-    background-color: #ddf;
     font-size: 28px;
     padding: 4px 5px 8px 5px; margin: 0;
     text-shadow: #88d 2px 2px 4px;
@@ -19,27 +15,6 @@ header {
     height: 40px;
     width: 100%;
     border-bottom: 1px inset blue;
-}
-nav {
-    font-size: 18px;
-    display: inline-block;
-}
-nav ul {
-    position: absolute;
-    right: 10px;
-    top: 0;
-    padding-top: 0;
-    margin-top: 10px;
-    display: inline;
-}
-nav ul li {
-    padding-top: 0;
-    margin-top: 0;
-    margin-left: 2em;
-    display: inline;
-}
-nav ul li.selected {
-    text-shadow: #ff00ff 2px 2px 4px;
 }
 div.tracks {
     display: block;
@@ -79,8 +54,6 @@ div.tracks div.track span {
     display: inline;
 }
 
-@media screen and (min-width: 480px) {
-}
 
 h2 {
     border-style: inset;
