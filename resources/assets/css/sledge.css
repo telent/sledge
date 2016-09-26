@@ -91,7 +91,8 @@ h2 {
 
 div.search-box {
     border: inset 2px;
-    padding: 8px 0;
+    margin-top: 46px;
+    padding: 8px 0px;
     height: 36px; /* see #search-term height */
 }
 

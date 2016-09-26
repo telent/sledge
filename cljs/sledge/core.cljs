@@ -21,7 +21,6 @@
               }
      :player-queue []
      :viewing-queue? false
-     :tab-on-view [:search]
      :player {:track-number 0
               :playing true
               :track-offset 0
@@ -34,9 +33,6 @@
 
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
-
-(defn tab-on-view []
-  (om/ref-cursor (:tab-on-view (om/root-cursor app-state))))
 
 (defn player-state []
   (om/ref-cursor (:player (om/root-cursor app-state))))
@@ -175,18 +171,16 @@
   (reify
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))
-            on-view (om/observe owner (tab-on-view))]
-        (when (= (first on-view) :player-queue)
-          (apply dom/div #js {:className "queue tracks"}
-                 (dom/div #js {:className "track header"}
-                          (dom/span #js {:className "artist"} "Delete queue")
-                          (dom/button #js {:onClick #(dequeue-all)} "-"))
-                 (map #(om/build queue-track-view
-                                 %1
-                                 {:state {:index %2}})
-                      queue (range 0 999))
-                 ))))))
+      (let [queue (om/observe owner (player-queue))]
+        (apply dom/div #js {:className "queue tracks"}
+               (dom/div #js {:className "track header"}
+                        (dom/span #js {:className "artist"} "Delete queue")
+                        (dom/button #js {:onClick #(dequeue-all)} "-"))
+               (map #(om/build queue-track-view
+                               %1
+                               {:state {:index %2}})
+                    queue (range 0 999))
+               )))))
 
 (defn search-entry-view [term owner]
   (reify
@@ -248,8 +242,7 @@
         (.addEventListener el "timeupdate" player-playing true)))
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))
-            on-view (om/observe owner (tab-on-view))]
+      (let [queue (om/observe owner (player-queue))]
         (dom/span #js {}
                   (dom/button #js { :onClick player-pause }
                               ">")
@@ -262,7 +255,7 @@
                   " / "
                   (dom/span #js {:className "track-time"}
                             (mmss (get (current-track) "length" 0)))
-                  (dom/audio #js {:ref "player"}))))))
+                  )))))
 
 
 (defn update-term [[command new-terms] previous]
@@ -365,7 +358,8 @@
         (om/build search-view (:search state))
         (if (:viewing-queue? state)
           (om/build queue-view state)
-          (om/build minimised-queue-view state))]))))
+          (om/build minimised-queue-view state))
+        [:audio {:ref "player"}]]))))
 
 (defn init []
   (add-watch app-state :transport sync-transport)
