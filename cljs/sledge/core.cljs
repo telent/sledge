@@ -283,34 +283,6 @@
                          {:init-state {:string ""}})
                (om/build results-view (:results search))))))
 
-(defn show-tab [cursor tab-name]
-  (om/update! cursor [:tab-on-view] [tab-name]))
-
-(defn tab-selector-view [app owner]
-  (reify
-    om/IRender
-    (render [this]
-      (let [on-view (om/observe owner (tab-on-view))]
-        (html
-         [:nav {}
-          [:ul {}
-           [:li {:onClick #(show-tab app :search)
-                 :className
-                 (if (= (first on-view) :search)
-                   "selected"
-                   "unselected")
-                 }
-            [:span {:id "show-library"} "library"]]
-           [:li
-            {:onClick #(show-tab app :player-queue)
-             :className
-             (if (= (first on-view) :player-queue)
-               "selected"
-               "unselected")
-             }
-            [:span  {:id "show-queue"} "queue"]]]])))))
-
-
 (defn music-in-queue? [tracknum]
   (let [queue (player-queue)]
     (nth queue tracknum nil)))
