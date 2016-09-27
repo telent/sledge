@@ -180,6 +180,12 @@
     (render [this]
       (html [:audio {:ref "player"}]))))
 
+(defn swallowing [h]
+  (fn [e]
+    (let [r (h e)]
+      (.stopPropagation e)
+      r)))
+
 (defn minimised-queue-view [app owner]
   (reify
     om/IRender
@@ -190,9 +196,9 @@
                 :onClick #(om/transact! app [:viewing-queue?] not)
                 }
           [:span  {}
-           [:button {:onClick player-pause } ">"]
-           [:button {:onClick player-next } ">>|"]
-           [:button {:onClick player-prev } "|<<"]
+           [:button {:onClick (swallowing player-pause) } ">"]
+           [:button {:onClick (swallowing player-next) } ">>|"]
+           [:button {:onClick (swallowing player-prev) } "|<<"]
            [:span {:className "elapsed-time time"}
             (mmss (:track-offset (player-state)))]
            " / "
