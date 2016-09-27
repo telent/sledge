@@ -167,7 +167,7 @@
                (dom/button #js {:onClick #(dequeue-track index)}
                            "-")))))
 
-(defn minimised-queue-view [app owner]
+(defn audio-el [app owner]
   (reify
     om/IDidMount
     (did-mount [this]
@@ -176,6 +176,12 @@
         ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
         (.addEventListener el "ended" player-next true)
         (.addEventListener el "timeupdate" player-playing true)))
+    om/IRender
+    (render [this]
+      (html [:audio {:ref "player"}]))))
+
+(defn minimised-queue-view [app owner]
+  (reify
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))]
@@ -338,7 +344,8 @@
          (if (:viewing-queue? state)
            (om/build queue-view state)
            (om/build minimised-queue-view state))]
-        [:audio {:ref "player"}]]))))
+        (om/build audio-el state)
+        ]))))
 
 (defn init []
   (add-watch app-state :transport sync-transport)
