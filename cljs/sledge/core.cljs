@@ -186,13 +186,13 @@
       (.stopPropagation e)
       r)))
 
-(defn minimised-queue-view [app owner]
+(defn transport-buttons-view [app owner]
   (reify
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))]
         (html
-         [:div {
+         [:div {:id "transport"
                 :onClick #(om/transact! app [:viewing-queue?] not)
                 }
           [:span  {}
@@ -210,21 +210,20 @@
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))]
-        (apply dom/div #js {}
-               (dom/div #js {}
-                        (om/build minimised-queue-view app))
-               (dom/div #js {:className "track header"}
-                        (dom/span #js {:className "artist"} "Delete queue")
-                        (dom/button #js {:onClick #(dequeue-all)} "-"))
-               (map #(om/build queue-track-view
-                               %1
-                               {:state
-                                {:index %2
-                                 :current? (= (-> app :player :track-number)
-                                              %2)
-                                 }})
-                    queue (range 0 999))
-               )))))
+        (html
+         [:div {}
+          [:div {:className "track header"}
+           [:span {:className "artist"} "Delete queue"]
+           [:button {:onClick #(dequeue-all)} "-"]]
+          (map #(om/build queue-track-view
+                          %1
+                          {:state
+                           {:index %2
+                            :current? (= (-> app :player :track-number)
+                                         %2)
+                            }})
+               queue (range 0 999))
+          ])))))
 
 (defn search-entry-view [term owner]
   (reify
@@ -348,12 +347,11 @@
        [:div
         [:header {:className "default-primary-color" } "sledge"]
         (om/build search-view (:search state))
-        [:div {:className
-               (if (:viewing-queue? state) "queue queue-open tracks"
-                   "queue tracks")}
-         (if (:viewing-queue? state)
-           (om/build queue-view state)
-           (om/build minimised-queue-view state))]
+        (if (:viewing-queue? state)
+          [:div {:className "queue queue-open tracks" }
+           (om/build queue-view state)]
+          [:div {:className "queue tracks" } " "])
+        (om/build transport-buttons-view state)
         (om/build audio-el state)
         ]))))
 
