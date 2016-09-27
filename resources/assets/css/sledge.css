@@ -31,6 +31,10 @@ div.tracks div.track {
 div.tracks.queue div.track {
     background: #ffa;
 }
+div.tracks.queue div.track.current-track {
+    background-color: red;
+}
+
 
 div.tracks div.track .title {
     position: absolute;

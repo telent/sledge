@@ -158,8 +158,8 @@
 (defn queue-track-view [track owner]
   (reify
     om/IRenderState
-    (render-state [this {:keys [index]}]
-      (dom/div #js {:className "track"}
+    (render-state [this {:keys [index current?]}]
+      (dom/div #js {:className (if current? "current-track track" "track")}
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
                (dom/span #js {:className "title"} (get track "title"))
@@ -212,7 +212,11 @@
                         (dom/button #js {:onClick #(dequeue-all)} "-"))
                (map #(om/build queue-track-view
                                %1
-                               {:state {:index %2}})
+                               {:state
+                                {:index %2
+                                 :current? (= (-> app :player :track-number)
+                                              %2)
+                                 }})
                     queue (range 0 999))
                )))))
 
