@@ -24,9 +24,14 @@ div.tracks div.track {
     display: block;
     position: relative;
     height: 44px;
-    background: #ddd;
+    background: #dff;
     margin-bottom: 6px;
 }
+
+div.tracks.queue div.track {
+    background: #ffa;
+}
+
 div.tracks div.track .title {
     position: absolute;
     top: 4px; left: 2px;
@@ -55,12 +60,6 @@ div.tracks div.track span {
 }
 
 
-h2 {
-    border-style: inset;
-    border-width: 1px;
-    padding: 0.1em;
-    color: #66a;
-}
 
 div.search-box {
     border: inset 2px;
@@ -105,7 +104,7 @@ span.filters span.filter:after {
 }
 
 div.queue {
-    background-color: #222;
+    background-color: #afa;
     position: fixed;
     bottom: 0;
     max-height: 40px;
@@ -125,24 +124,6 @@ div.scrolling {
     overflow: auto
 }
 
-footer {
-    font-size: 14px;
-    line-height: 110%;
-    background-color: grey;
-    color: white;
-    padding: 0.3em 1em;
-    border-top-style: groove;
-    position: absolute;
-    bottom: 0px;
-    height: 40px;
-    width: 100%;
-}
-footer a {
-    color: #ddf;
-}
-footer p {
-    margin: 0 0 3px 0;
-}
 audio {
     margin-top: 1em;
 }
