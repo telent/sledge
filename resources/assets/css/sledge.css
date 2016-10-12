@@ -125,10 +125,39 @@ div#transport {
     width: 100%;
     color: white;
     padding: 6px;
-    height: 20px;
+    height: 40px;
     background: black ;
     bottom: 0px;
-}    
+    font-stretch: condensed;
+}
+div#transport:hover {
+    height: 42px;
+}
+
+#transport .index {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-right: 1em;
+}
+
+#transport .index .current {
+    position: relative;
+    top: -0.2em;
+}
+
+#transport .index .total {
+    position: relative;
+    left: 0em;
+    top: 0.4em;
+}
+
+#transport .buttons {
+    float: right;
+}
+
+#transport .offset {
+    float: right;
+}
 
 div.scrolling {
     top: 55px;

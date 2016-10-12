@@ -190,20 +190,34 @@
   (reify
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))]
+      (let [queue (om/observe owner (player-queue))
+            track (current-track)]
         (html
          [:div {:id "transport"
                 :onClick #(om/transact! app [:viewing-queue?] not)
                 }
-          [:span  {}
+          [:span {:className "index"}
+           [:span {:className "current"}
+            (inc (:track-number (player-state)))]
+           "/"
+           [:span {:className "total"}
+            (count (player-queue))]]
+          [:span {}
+           [:span {:className "title-artist"}
+            (get track "title") " - "
+            (get track "artist")]]
+
+          [:span {:className "buttons"}
            [:button {:onClick (swallowing player-pause) } ">"]
            [:button {:onClick (swallowing player-next) } ">>|"]
-           [:button {:onClick (swallowing player-prev) } "|<<"]
+           [:button {:onClick (swallowing player-prev) } "|<<"]]
+          [:span {:className "offset"}
            [:span {:className "elapsed-time time"}
             (mmss (:track-offset (player-state)))]
            " / "
            [:span {:className "track-time"}
-            (mmss (get (current-track) "length" 0))]]])))))
+            (mmss (get track "length" 0))]]
+          ])))))
 
 (defn queue-view [app owner]
   (reify
