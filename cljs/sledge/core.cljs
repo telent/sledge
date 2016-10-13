@@ -13,6 +13,9 @@
 
 (enable-console-print!)
 
+;; we need to be a whole lot clearer about whether we're playing,
+;; what we're playing (now/next), and why we're not playing
+
 (def app-state
   (atom
     {:search {
@@ -20,7 +23,7 @@
               :results []
               }
      :player-queue []
-     :tab-on-view [:search]
+     :viewing-queue? false
      :player {:track-number 0
               :playing true
               :track-offset 0
@@ -33,9 +36,6 @@
 
 (defn player-queue []
   (om/ref-cursor (:player-queue (om/root-cursor app-state))))
-
-(defn tab-on-view []
-  (om/ref-cursor (:tab-on-view (om/root-cursor app-state))))
 
 (defn player-state []
   (om/ref-cursor (:player (om/root-cursor app-state))))
@@ -150,7 +150,7 @@
             (om/build-all results-track-view tracks)]
         (apply dom/div #js {:className "results tracks" }
                (dom/div #js {:className "track"}
-                        (dom/span {:id "queue-all-tracks"}
+                        (dom/span #js {:id "queue-all-tracks"}
                                   "Queue all tracks")
                         button)
                track-components)
@@ -161,8 +161,8 @@
 (defn queue-track-view [track owner]
   (reify
     om/IRenderState
-    (render-state [this {:keys [index]}]
-      (dom/div #js {:className "track"}
+    (render-state [this {:keys [index current?]}]
+      (dom/div #js {:className (if current? "current-track track" "track")}
                (dom/span #js {:className "artist"} (get track "artist"))
                (dom/span #js {:className "album"} (get track "album" ))
                (dom/span #js {:className "title"} (get track "title"))
@@ -170,22 +170,112 @@
                (dom/button #js {:onClick #(dequeue-track index)}
                            "-")))))
 
-(defn queue-view [app owner]
+(defn audio-el [app owner]
+  (reify
+    om/IDidMount
+    (did-mount [this]
+      (let [el (om/get-node owner)]
+        ;; last arg "true" is cos audio events don't bubble
+        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
+        (.addEventListener el "ended" player-next true)
+        (.addEventListener el "timeupdate" player-playing true)))
+    om/IRender
+    (render [this]
+      (html [:audio {:ref "player"}]))))
+
+(defn swallowing [h]
+  (fn [e]
+    (let [r (h e)]
+      (.stopPropagation e)
+      r)))
+
+(defn svg [& elements]
+  (into
+   [:svg {:xmlns "http://www.w3.org/2000/svg"
+          :version "1.1"
+          :width "24px"
+          :height "20px"
+          :viewBox "-10 -10 120 120"
+          :xmlnsXlink "http://www.w3.org/1999/xlink"
+          }]
+   elements))
+
+(defn polygon [& points]
+  [:polygon {:className "button"
+             :points (string/join " " points)
+             :fill "#006765"}])
+
+(defn svg-play []
+  (svg [:g {:transform "translate(15 0)"}
+        (polygon 0,0 80,50 0,100 0,0)]))
+
+(defn svg-pause []
+  (svg [:g {:transform "translate(15 0)"}
+        (polygon 0,0 25,0 25,100 0,100 0,0)
+        (polygon 40,0 65,0 65,100 40,100 40,0)]))
+
+(defn svg-skip-track [ & [backward?]]
+  (svg [:g {:transform (if backward? "rotate(180 50 50)" "translate(0 0)")}
+        (polygon 0,0 35,50 0,100 0,0)
+        (polygon 40,0 80,50 40,100 40,0)
+        (polygon 85,0 95,0 95,100 85,100 85,0)]))
+
+(defn transport-buttons-view [app owner]
   (reify
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
-            on-view (om/observe owner (tab-on-view))]
-        (when (= (first on-view) :player-queue)
-          (apply dom/div #js {:className "queue tracks"}
-                 (dom/div #js {:className "track header"}
-                          (dom/span #js {:className "artist"} "Delete queue")
-                          (dom/button #js {:onClick #(dequeue-all)} "-"))
-                 (map #(om/build queue-track-view
-                                 %1
-                                 {:state {:index %2}})
-                      queue (range 0 999))
-                 ))))))
+            playing? (:playing (player-state))
+            track (current-track)]
+        (html
+         [:div {:id "transport"
+                :onClick #(om/transact! app [:viewing-queue?] not)
+                }
+          [:span {:className "index"}
+           [:span {:className "current"}
+            (inc (:track-number (player-state)))]
+           "/"
+           [:span {:className "total"}
+            (count (player-queue))]]
+          [:span {}
+           [:span {:className "title-artist"}
+            (get track "title") " - "
+            (get track "artist")]]
+
+          [:span {:className "buttons"}
+           [:button {:onClick (swallowing player-prev) }
+            (svg-skip-track :backwards)]
+           [:button {:onClick (swallowing player-pause) }
+            (if playing? (svg-pause) (svg-play))]
+           [:button {:onClick (swallowing player-next) }
+            (svg-skip-track)]]
+          [:span {:className "offset"}
+           [:span {:className "elapsed-time time"}
+            (mmss (:track-offset (player-state)))]
+           " / "
+           [:span {:className "track-time"}
+            (mmss (get track "length" 0))]]
+          ])))))
+
+(defn queue-view [app owner]
+  (reify
+    om/IRender
+    (render [this]
+      (let [queue (om/observe owner (player-queue))]
+        (html
+         [:div {}
+          [:div {:className "track header"}
+           [:span {:className "artist"} "Delete queue"]
+           [:button {:onClick #(dequeue-all)} "-"]]
+          (map #(om/build queue-track-view
+                          %1
+                          {:state
+                           {:index %2
+                            :current? (= (-> app :player :track-number)
+                                         %2)
+                            }})
+               queue (range 0 999))
+          ])))))
 
 (defn search-entry-view [term owner]
   (reify
@@ -236,32 +326,7 @@
                     (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
-(defn player-view [app owner]
-  (reify
-    om/IDidMount
-    (did-mount [this]
-      (let [el (om/get-node owner)]
-        ;; last arg "true" is cos audio events don't bubble
-        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el "ended" player-next true)
-        (.addEventListener el "timeupdate" player-playing true)))
-    om/IRender
-    (render [this]
-      (let [queue (om/observe owner (player-queue))
-            on-view (om/observe owner (tab-on-view))]
-        (dom/span #js {}
-                  (dom/button #js { :onClick player-pause }
-                              ">")
-                  (dom/button #js { :onClick player-next }
-                              ">>|")
-                  (dom/button #js { :onClick player-prev }
-                              "|<<")
-                  (dom/span #js {:className "elapsed-time time"}
-                            (mmss (:track-offset (player-state))))
-                  " / "
-                  (dom/span #js {:className "track-time"}
-                            (mmss (get (current-track) "length" 0)))
-                  (dom/audio #js {:ref "player"}))))))
+
 
 
 (defn update-term [[command new-terms] previous]
@@ -284,40 +349,10 @@
                 (recur))))))
     om/IRender
     (render [this]
-      (let [on-view (om/observe owner (tab-on-view))]
-        (if (= (first on-view) :search)
-          (dom/div nil
-                   (om/build search-entry-view (:term search)
-                             {:init-state {:string ""}})
-                   (om/build results-view (:results search))))))))
-
-(defn show-tab [cursor tab-name]
-  (om/update! cursor [:tab-on-view] [tab-name]))
-
-(defn tab-selector-view [app owner]
-  (reify
-    om/IRender
-    (render [this]
-      (let [on-view (om/observe owner (tab-on-view))]
-        (html
-         [:nav {}
-          [:ul {}
-           [:li {:onClick #(show-tab app :search)
-                 :className
-                 (if (= (first on-view) :search)
-                   "selected"
-                   "unselected")
-                 }
-            [:span {:id "show-library"} "library"]]
-           [:li
-            {:onClick #(show-tab app :player-queue)
-             :className
-             (if (= (first on-view) :player-queue)
-               "selected"
-               "unselected")
-             }
-            [:span  {:id "show-queue"} "queue"]]]])))))
-
+      (dom/div nil
+               (om/build search-entry-view (:term search)
+                         {:init-state {:string ""}})
+               (om/build results-view (:results search))))))
 
 (defn music-in-queue? [tracknum]
   (let [queue (player-queue)]
@@ -356,29 +391,21 @@
       (.pause actual))))
 
 
-(defn app-view [app owner]
+(defn app-view [state owner]
   (reify
     om/IRender
     (render [this]
-      (dom/div nil
-               (dom/header
-                #js {:id "sledge"
-                     :className "default-primary-color"
-                     }
-                "sledge"
-                (om/build tab-selector-view app))
-               (dom/div #js {:className "scrolling"}
-                        (om/build search-view (:search app))
-                        (om/build queue-view app))
-               (dom/footer #js {}
-                           #_#_#_
-                           (dom/span #js {:onClick print-debuggy-stuff }
-                                     "debug")
-                           "  "
-                           (dom/span #js {:onClick sync-transport }
-                                     "sync")
-                           (om/build player-view app))
-               ))))
+      (html
+       [:div
+        [:header {:className "default-primary-color" } "sledge"]
+        (om/build search-view (:search state))
+        (if (:viewing-queue? state)
+          [:div {:className "queue queue-open tracks" }
+           (om/build queue-view state)]
+          [:div {:className "queue tracks" } " "])
+        (om/build transport-buttons-view state)
+        (om/build audio-el state)
+        ]))))
 
 (defn init []
   (add-watch app-state :transport sync-transport)

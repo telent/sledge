@@ -1,16 +1,12 @@
 
 body {
     font-family: sans-serif;
-    font-size: 18px;
+    font-size: 16px;
     padding: 0; margin: 0;
 }
 
-@media screen and (max-width: 480px) {
-    /* mobile-specific layout will eventually go here */
-}
 header { 
     font-weight: normal;
-    background-color: #ddf;
     font-size: 28px;
     padding: 4px 5px 8px 5px; margin: 0;
     text-shadow: #88d 2px 2px 4px;
@@ -18,28 +14,7 @@ header {
     top: 0;
     height: 40px;
     width: 100%;
-    border-bottom: 1px inset blue;
-}
-nav {
-    font-size: 18px;
-    display: inline-block;
-}
-nav ul {
-    position: absolute;
-    right: 10px;
-    top: 0;
-    padding-top: 0;
-    margin-top: 10px;
-    display: inline;
-}
-nav ul li {
-    padding-top: 0;
-    margin-top: 0;
-    margin-left: 2em;
-    display: inline;
-}
-nav ul li.selected {
-    text-shadow: #ff00ff 2px 2px 4px;
+/*    border-bottom: 1px inset blue; */
 }
 div.tracks {
     display: block;
@@ -49,9 +24,19 @@ div.tracks div.track {
     display: block;
     position: relative;
     height: 44px;
-    background: #ddd;
+/*     background: #dff; */
     margin-bottom: 6px;
+    border-bottom: #bbb dotted 1px;
 }
+
+div.tracks.queue div.track {
+    /*    background: #ffa; */
+}
+div.tracks.queue div.track.current-track {
+    background-color: red;
+}
+
+
 div.tracks div.track .title {
     position: absolute;
     top: 4px; left: 2px;
@@ -79,19 +64,10 @@ div.tracks div.track span {
     display: inline;
 }
 
-@media screen and (min-width: 480px) {
-}
-
-h2 {
-    border-style: inset;
-    border-width: 1px;
-    padding: 0.1em;
-    color: #66a;
-}
-
 div.search-box {
-    border: inset 2px;
-    padding: 8px 0;
+/*     border: inset 2px; */
+    margin-top: 46px;
+    padding: 8px 0px;
     height: 36px; /* see #search-term height */
 }
 
@@ -130,6 +106,59 @@ span.filters span.filter:after {
     margin-left: 0.5em;
 }
 
+div.queue {
+/*     background-color: #afa;*/
+    position: fixed;
+    bottom: 32px;
+    max-height: 0px;
+    width: 100%;
+    transition: max-height 0.5s;
+}
+div.queue-open {
+    background: #dde;
+    max-height: 90%;
+    transition: max-height 0.2s;
+    overflow: auto;
+}
+div#transport {
+    position: fixed;
+    width: 100%;
+    color: white;
+    padding: 6px;
+    height: 40px;
+    background: black ;
+    bottom: 0px;
+    font-stretch: condensed;
+}
+div#transport:hover {
+    height: 42px;
+}
+
+#transport .index {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-right: 1em;
+}
+
+#transport .index .current {
+    position: relative;
+    top: -0.2em;
+}
+
+#transport .index .total {
+    position: relative;
+    left: 0em;
+    top: 0.4em;
+}
+
+#transport .buttons {
+    float: right;
+}
+
+#transport .offset {
+    float: right;
+}
+
 div.scrolling {
     top: 55px;
     bottom: 40px;
@@ -138,24 +167,6 @@ div.scrolling {
     overflow: auto
 }
 
-footer {
-    font-size: 14px;
-    line-height: 110%;
-    background-color: grey;
-    color: white;
-    padding: 0.3em 1em;
-    border-top-style: groove;
-    position: absolute;
-    bottom: 0px;
-    height: 40px;
-    width: 100%;
-}
-footer a {
-    color: #ddf;
-}
-footer p {
-    margin: 0 0 3px 0;
-}
 audio {
     margin-top: 1em;
 }
