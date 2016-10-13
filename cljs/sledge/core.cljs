@@ -13,6 +13,9 @@
 
 (enable-console-print!)
 
+;; we need to be a whole lot clearer about whether we're playing,
+;; what we're playing (now/next), and why we're not playing
+
 (def app-state
   (atom
     {:search {
@@ -186,11 +189,43 @@
       (.stopPropagation e)
       r)))
 
+(defn svg [& elements]
+  (into
+   [:svg {:xmlns "http://www.w3.org/2000/svg"
+          :version "1.1"
+          :width "24px"
+          :height "20px"
+          :viewBox "-10 -10 120 120"
+          :xmlnsXlink "http://www.w3.org/1999/xlink"
+          }]
+   elements))
+
+(defn polygon [& points]
+  [:polygon {:className "button"
+             :points (string/join " " points)
+             :fill "#006765"}])
+
+(defn svg-play []
+  (svg [:g {:transform "translate(15 0)"}
+        (polygon 0,0 80,50 0,100 0,0)]))
+
+(defn svg-pause []
+  (svg [:g {:transform "translate(15 0)"}
+        (polygon 0,0 25,0 25,100 0,100 0,0)
+        (polygon 40,0 65,0 65,100 40,100 40,0)]))
+
+(defn svg-skip-track [ & [backward?]]
+  (svg [:g {:transform (if backward? "rotate(180 50 50)" "translate(0 0)")}
+        (polygon 0,0 35,50 0,100 0,0)
+        (polygon 40,0 80,50 40,100 40,0)
+        (polygon 85,0 95,0 95,100 85,100 85,0)]))
+
 (defn transport-buttons-view [app owner]
   (reify
     om/IRender
     (render [this]
       (let [queue (om/observe owner (player-queue))
+            playing? (:playing (player-state))
             track (current-track)]
         (html
          [:div {:id "transport"
@@ -208,9 +243,12 @@
             (get track "artist")]]
 
           [:span {:className "buttons"}
-           [:button {:onClick (swallowing player-pause) } ">"]
-           [:button {:onClick (swallowing player-next) } ">>|"]
-           [:button {:onClick (swallowing player-prev) } "|<<"]]
+           [:button {:onClick (swallowing player-prev) }
+            (svg-skip-track :backwards)]
+           [:button {:onClick (swallowing player-pause) }
+            (if playing? (svg-pause) (svg-play))]
+           [:button {:onClick (swallowing player-next) }
+            (svg-skip-track)]]
           [:span {:className "offset"}
            [:span {:className "elapsed-time time"}
             (mmss (:track-offset (player-state)))]
