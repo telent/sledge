@@ -130,14 +130,13 @@ div#transport {
     bottom: 0px;
     font-stretch: condensed;
 }
-div#transport:hover {
-    height: 42px;
-}
 
 #transport .index {
     font-size: 0.9em;
     font-weight: bold;
     margin-right: 1em;
+    position: relative;
+    top: -0.7rem;
 }
 
 #transport .index .current {
@@ -151,12 +150,31 @@ div#transport:hover {
     top: 0.4em;
 }
 
+#transport .title-artist {
+    overflow-x: hidden;
+    max-width: 60%;
+    display: inline-block;
+    font-size: 90%;
+}
+#transport .title-artist .artist:before {
+    content: " - ";
+}
+#transport .title-artist .album:before {
+    content:"\a"; white-space: pre;
+}
+#transport .title-artist .album {
+    font-size: 90%;
+    color: yellow;
+}
+               
 #transport .buttons {
     float: right;
 }
 
 #transport .offset {
     float: right;
+    padding-top: 0.25rem;
+    padding-right: 0.7rem;
 }
 
 div.scrolling {

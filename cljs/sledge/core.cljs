@@ -237,11 +237,13 @@
            "/"
            [:span {:className "total"}
             (count (player-queue))]]
-          [:span {}
-           [:span {:className "title-artist"}
-            (get track "title") " - "
-            (get track "artist")]]
-
+          [:div {:className "title-artist"}
+           [:span {:className "title"}
+            (get track "title")]
+           [:span {:className "artist"}
+            (get track "artist")]
+           [:span {:className "album"}
+            (get track "album")]]
           [:span {:className "buttons"}
            [:button {:onClick (swallowing player-prev) }
             (svg-skip-track :backwards)]
