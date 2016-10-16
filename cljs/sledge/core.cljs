@@ -3,6 +3,7 @@
   (:import [goog.net XhrIo] goog.Uri)
   (:require [goog.events :as events]
             [cljsjs.react :as React]
+            [cljs.test :refer-macros [deftest is testing]]
             [clojure.string :as string]
             [clojure.set :as set]
             [sablono.core :as html :refer-macros [html]]
@@ -16,13 +17,24 @@
 ;; we need to be a whole lot clearer about whether we're playing,
 ;; what we're playing (now/next), and why we're not playing
 
+;; - the queue is empty, there is nothing to play
+;; - the queue is all played out, there is nothing to play
+;; - the user has selected 'pause'
+;; - the user has selected 'play'
+;; - we have reached the end of a track and the player has reset to 'paused'
+;; - (maybe we need to reflect the actual!=desired status
+
 (def app-state
   (atom
     {:search {
               :term #{}
               :results []
               }
-     :player-queue []
+     :queue {
+             :tracks []
+             :next-track 0 ; now-playing (dec next-track)
+             }
+     :player-queue []  ; do not use
      :viewing-queue? false
      :player {:track-number 0
               :playing true
@@ -30,6 +42,40 @@
               :track-offset-when 0
               }
      }))
+
+
+(defn queue-empty?
+  "Have we run out of tracks to play when the current track (if any) is done?"
+  [queue]
+  (> (:next-track queue) (count (:tracks queue))))
+
+(defn queued-track
+  [queue]
+  (nth (:tracks queue) (:next-track queue)))
+
+(defn advance-queue [queue]
+  (update-in queue [:next-track] inc))
+
+(deftest queue-fns
+  (let [q {:tracks [:a :b :c :d] :next-track 0}]
+    (is (= (queued-track q) :a))
+    (is (not (queue-empty? q)))
+    (let [q1 (advance-queue q)]
+      (is (= (:next-track q1) 1))
+      (is (= (:tracks q1) (:tracks q))))))
+
+(defn remove-from-queue [queue track]
+  (if (some #{track} (subvec (:tracks queue) (:next-track queue)))
+    (update-in queue [:tracks] (partial remove #{track}))
+    queue))
+
+(deftest remove-from-queue-test
+  (let [q {:tracks [:a :b :c :d] :next-track 2}]
+    ;; can only remove unplayed tracks from queue
+    (is (= (remove-from-queue q :c) {:tracks [:a :b :d] :next-track 2}))
+    (is (= (remove-from-queue q :a) q))))
+
+
 
 (defn search-results []
   (om/ref-cursor (:results (:search (om/root-cursor app-state)))))
@@ -418,3 +464,7 @@
               :shared {:search-channel search}})))
 
 (.addEventListener js/window "load" init)
+
+
+
+(cljs.test/run-tests)
