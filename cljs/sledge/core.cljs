@@ -260,6 +260,14 @@
         (polygon 0,0 25,0 25,100 0,100 0,0)
         (polygon 40,0 65,0 65,100 40,100 40,0)]))
 
+(defn svg-spinner []
+  [:div {:className "spinning"}
+   (svg
+    [:circle {:cx 50 :cy 20 :r 11 :fill "#006765"}]
+    [:circle {:cx 50 :cy 80 :r 11 :fill "#006765"}]
+    [:circle {:cx 20 :cy 50 :r 11 :fill "#006765"}]
+    [:circle {:cx 80 :cy 50 :r 11 :fill "#006765"}])])
+
 (defn svg-skip-track [ & [backward?]]
   (svg [:g {:transform (if backward? "rotate(180 50 50)" "translate(0 0)")}
         (polygon 0,0 35,50 0,100 0,0)
