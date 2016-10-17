@@ -17,12 +17,21 @@
 ;; we need to be a whole lot clearer about whether we're playing,
 ;; what we're playing (now/next), and why we're not playing
 
-;; - the queue is empty, there is nothing to play
-;; - the queue is all played out, there is nothing to play
-;; - the user has selected 'pause'
-;; - the user has selected 'play'
-;; - we have reached the end of a track and the player has reset to 'paused'
-;; - (maybe we need to reflect the actual!=desired status
+;; so we have desired state ("we are pointing at queue entry 3 and
+;; 'play' has been activated")
+;; and actual state ("we have played 34s of the track with url ...; we
+;; ran out of data and now the player is paused")
+
+;; also: whether we *want* to be in 'play' or 'pause' has no bearing
+;; on whether there is anything playable in the queue
+
+;; when the player is playing it is sending us messages about the
+;; current play time.  when we use the 'skip track' button we also
+;; have to tell the player to change track. so there's information
+;; flowing both ways there
+;;
+
+
 
 (def app-state
   (atom
@@ -39,7 +48,6 @@
      :player {:track-number 0
               :playing true
               :track-offset 0
-              :track-offset-when 0
               }
      }))
 
