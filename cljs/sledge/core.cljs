@@ -32,7 +32,6 @@
 ;;
 
 
-
 (def app-state
   (atom
     {:search {
@@ -51,26 +50,57 @@
               }
      }))
 
+(defn empty-queue [] {:tracks [] :next-track 0})
+
+(defn queue-current-entry
+  "Return the current entry in the queue, or nil if empty"
+  [queue]
+  (let [tracks (:tracks queue)
+        nxt (:next-track queue)]
+    (if (seq tracks)
+      (if (zero? nxt)
+        (first tracks)                  ; dubious
+        (nth tracks (dec nxt))))))
+
+(deftest queue-current-test
+  (is (nil? (queue-current-entry (empty-queue))))
+  (let [q {:tracks [:a :b :c :d] :next-track 2}]
+    (is (= (queue-current-entry q) :b))
+    (is (= (queue-current-entry {:tracks [] :next-track 0}) nil))))
+
 
 (defn queue-empty?
   "Have we run out of tracks to play when the current track (if any) is done?"
   [queue]
-  (> (:next-track queue) (count (:tracks queue))))
+  (>= (:next-track queue) (count (:tracks queue))))
 
 (defn queued-track
   [queue]
-  (nth (:tracks queue) (:next-track queue)))
+  (if (not (queue-empty? queue))
+    (nth (:tracks queue) (:next-track queue))))
 
-(defn advance-queue [queue]
-  (update-in queue [:next-track] inc))
-
-(deftest queue-fns
+(deftest queue-empty-test
+  (is (queue-empty? (empty-queue)))
+  (is (not (queue-empty? {:tracks [:a] :next-track 0})))
+  (is (queue-empty? {:tracks [:a] :next-track 1}))
   (let [q {:tracks [:a :b :c :d] :next-track 0}]
     (is (= (queued-track q) :a))
-    (is (not (queue-empty? q)))
-    (let [q1 (advance-queue q)]
-      (is (= (:next-track q1) 1))
-      (is (= (:tracks q1) (:tracks q))))))
+    (is (not (queue-empty? q)))))
+
+(defn advance-queue [queue]
+  (if (queue-empty? queue)
+    queue
+    (update-in queue [:next-track] inc)))
+
+(deftest advance-queue-test
+  (let [q {:tracks [:a :b :c :d] :next-track 0}
+        q1 (advance-queue q)
+        q2 (-> q1 advance-queue advance-queue advance-queue advance-queue)]
+    (is (= (:next-track q1) 1))
+    (is (nil? (queued-track q2) ))
+    (is (= (queued-track q2) (queued-track (advance-queue q2))))
+    (is (= (:tracks q1) (:tracks q)))))
+
 
 (defn remove-from-queue [queue track]
   (if (some #{track} (subvec (:tracks queue) (:next-track queue)))
@@ -81,9 +111,14 @@
   (let [q {:tracks [:a :b :c :d] :next-track 2}]
     ;; can only remove unplayed tracks from queue
     (is (= (remove-from-queue q :c) {:tracks [:a :b :d] :next-track 2}))
-    (is (= (remove-from-queue q :a) q))))
+    (is (= (remove-from-queue q :a) q)))
+  (let [q (empty-queue)]
+    ;; ok to remove a track that's not there
+    (is (= (remove-from-queue q :foo) q))))
 
 
+(defn enqueue-track [queue track]
+  (update-in queue [:tracks] conj track))
 
 (defn search-results []
   (om/ref-cursor (:results (:search (om/root-cursor app-state)))))
@@ -126,6 +161,9 @@
   (om/transact! (player-queue)
                 (fn [v] (vec (concat (subvec v 0 index)
                                      (subvec v (inc index)))))))
+(deftest enqueue-test
+  (let [q {:tracks [:a :b :c :d] :next-track 2}]
+    (is (= (:tracks (enqueue-track q :z)) [:a :b :c :d :z]))))
 
 (defn dequeue-all []
   (om/transact! (player-queue) (fn [v] [])))
@@ -399,12 +437,10 @@
 
 
 
-
 (defn update-term [[command new-terms] previous]
   (case command
     :add (set/union previous (set new-terms))
     :drop (set/difference previous new-terms)))
-
 
 (defn search-view [search owner]
   (reify
@@ -425,10 +461,7 @@
                          {:init-state {:string ""}})
                (om/build results-view (:results search))))))
 
-(defn music-in-queue? [tracknum]
-  (let [queue (player-queue)]
-    (nth queue tracknum nil)))
-
+#_
 (defn print-debuggy-stuff []
   (let [p (player-el)]
     (println [(.-currentTime p)
@@ -442,7 +475,7 @@
 (defn sync-transport [_ ref o n]
   (let [desired (:player n)
         actual (player-el)
-        urls (music-in-queue? (:track-number desired))]
+        urls (queue-current-entry (:queue desired))]
 
     ;; find out what track we should be playing
     (let [bits (best-media-url urls)
