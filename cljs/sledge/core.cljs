@@ -135,9 +135,16 @@
         s (- (Math/floor seconds) (* 60 m))]
     (str m ":" (.substr (str "000" s) -2))))
 
+(deftest mmss-test
+  (is (mmss 20) "0:20")
+  (is (mmss 40) "0:40")
+  (is (mmss 60) "1:00")
+  (is (mmss 80) "1:20")
+  (is (mmss 200) "3:20")
+  (is (mmss 4000) "66:40")
+  (is (mmss 6000) "100:00")
+  (is (mmss 381) "6:21"))
 
-#_(println (mmss 20) (mmss 40) (mmss 60) (mmss 80)
-         (mmss 200) (mmss 4000) (mmss 6000) (mmss 381))
 
 (defn results-track-view [track owner]
   (reify
