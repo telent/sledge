@@ -231,17 +231,17 @@
                (dom/button #js {:onClick #(dequeue-track index)}
                            "-")))))
 
-(defn audio-el [app owner]
+(defn audio-el [state owner]
   (reify
     om/IDidMount
-    (did-mount [this]
+    (did-mount [_]
       (let [el (om/get-node owner)]
         ;; last arg "true" is cos audio events don't bubble
         ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
         (.addEventListener el "ended" player-next true)
         (.addEventListener el "timeupdate" player-playing true)))
     om/IRender
-    (render [this]
+    (render [_]
       (html [:audio {:ref "player"}]))))
 
 (defn swallowing [h]
