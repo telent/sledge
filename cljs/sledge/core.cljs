@@ -370,7 +370,7 @@
                            {:index %2
                             :current? (= (dec (:next-track queue)) %2)
                             }})
-               queue (range 0 999))
+               (:tracks queue) (range 0 999))
           ])))))
 
 (defn search-entry-view [term owner]
