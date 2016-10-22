@@ -38,15 +38,13 @@
               :term #{}
               :results []
               }
-     :queue {
-             :tracks []
-             :next-track 0 ; now-playing (dec next-track)
-             }
-     :player-queue []  ; do not use
-     :viewing-queue? false
-     :player {:track-number 0
-              :playing true
-              :track-offset 0
+     :player {
+              :queue {
+                      :tracks []
+                      :next-track 0 ; now-playing (dec next-track)
+                      }
+              :want-play true
+              :audio-el {:track-offset 0 :playing false}
               }
      }))
 
@@ -120,53 +118,10 @@
 (defn enqueue-track [queue track]
   (update-in queue [:tracks] conj track))
 
-(defn search-results []
-  (om/ref-cursor (:results (:search (om/root-cursor app-state)))))
-
-(defn player-queue []
-  (om/ref-cursor (:player-queue (om/root-cursor app-state))))
-
-(defn player-state []
-  (om/ref-cursor (:player (om/root-cursor app-state))))
-
-(defn player-pause []
-  (om/transact! (player-state) #(update-in % [:playing] not)))
-
-(defn current-track []
-  (nth (player-queue) (:track-number (player-state)) nil))
-
-(defn player-next []
-  ;; how do we make this fail if there are no more tracks?
-  (om/transact! (player-state) #(update-in % [:track-number] inc)))
-
-(defn player-playing [e]
-  (let [player (.-target e)
-        offset (.-currentTime player)]
-    (om/transact! (player-state)
-                  #(update-in % [:track-offset]
-                              (fn [time] offset)))))
-
-(defn player-prev []
-  (let [dec0 #(max (dec %) 0)]
-    (om/transact! (player-state) #(update-in % [:track-number] dec0))))
-
-
-(defn player-el []
-  (aget (.getElementsByTagName js/document "audio") 0))
-
-(defn enqueue-track [track]
-  (om/transact! (player-queue) #(conj % track)))
-
-(defn dequeue-track [index]
-  (om/transact! (player-queue)
-                (fn [v] (vec (concat (subvec v 0 index)
-                                     (subvec v (inc index)))))))
 (deftest enqueue-test
   (let [q {:tracks [:a :b :c :d] :next-track 2}]
     (is (= (:tracks (enqueue-track q :z)) [:a :b :c :d :z]))))
 
-(defn dequeue-all []
-  (om/transact! (player-queue) (fn [v] [])))
 
 (defn mmss [seconds]
   (let [m (quot seconds 60)
@@ -189,6 +144,7 @@
     om/IRender
     (render [this]
       (let [search-chan (om/get-shared owner :search-channel)
+            command-chan (om/get-shared owner :command-channel)
             artist (dom/span
                     #js {:className "artist"
                          :onClick #(put! search-chan
@@ -205,7 +161,10 @@
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
             duration (dom/span #js {:className "duration"} (mmss (get track "length")))
-            button (dom/button #js {:onClick #(enqueue-track @track)} "+")]
+            button (dom/button #js
+                               {:onClick #(put! command-chan
+                                                [:enqueue @track])}
+                               "+")]
         (apply dom/div #js {:className "track"}
                [title artist album duration button]
                )))))
@@ -240,10 +199,12 @@
   (reify
     om/IRender
     (render [this]
-      (let [button (dom/button
+      (let [command-chan (om/get-shared owner :command-channel)
+            button (dom/button
                     #js {:onClick
-                         (fn [e] (doall (map #(enqueue-track %)
-                                             tracks)))}
+                         (fn [e] (doall
+                                  (map #(put! command-chan [:enqueue %])
+                                       tracks)))}
                     "+")
             track-components
             (om/build-all results-track-view tracks)]
@@ -261,23 +222,29 @@
   (reify
     om/IRenderState
     (render-state [this {:keys [index current?]}]
-      (dom/div #js {:className (if current? "current-track track" "track")}
-               (dom/span #js {:className "artist"} (get track "artist"))
-               (dom/span #js {:className "album"} (get track "album" ))
-               (dom/span #js {:className "title"} (get track "title"))
-               (dom/span #js {:className "duration"} (mmss (get track "length")))
-               (dom/button #js {:onClick #(dequeue-track index)}
-                           "-")))))
+      (let [command-chan (om/get-shared owner :command-channel)]
+        (html
+         [:div {:className (if current? "current-track track" "track")}
+          [:span {:className "artist"} (get track "artist")]
+          [:span {:className "album"} (get track "album" )]
+          [:span {:className "title"} (get track "title")]
+          [:span {:className "duration"} (mmss (get track "length"))]
+          [:button {:onClick #(put! command-chan [:dequeue index])}
+           "-"]])))))
 
 (defn audio-el [state owner]
   (reify
     om/IDidMount
     (did-mount [_]
       (let [el (om/get-node owner)]
-        ;; last arg "true" is cos audio events don't bubble
-        ;; http://stackoverflow.com/questions/11291651/why-dont-audio-and-video-events-bubble
-        (.addEventListener el "ended" player-next true)
-        (.addEventListener el "timeupdate" player-playing true)))
+        ;; add capturing handler (last arg "true")
+        ;; cos audio events don't bubble
+        (.addEventListener el "ended"
+                           #(om/update! state [:ended] true)
+                           true)
+        (.addEventListener el "timeupdate"
+                           #(om/update! state [:time-offset]
+                                        (.-currentTime (.-target %))))))
     om/IRender
     (render [_]
       (html [:audio {:ref "player"}]))))
@@ -327,23 +294,36 @@
         (polygon 40,0 80,50 40,100 40,0)
         (polygon 85,0 95,0 95,100 85,100 85,0)]))
 
+(defn player-el []
+  (aget (.getElementsByTagName js/document "audio") 0))
+
 (defn transport-buttons-view [app owner]
   (reify
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))
-            playing? (:playing (player-state))
-            track (current-track)]
+      (let [wanted (:player app)
+            queue (:queue wanted)
+            actual (player-el)
+            want-play (:playing (:audio-el wanted))
+            actually-playing (and actual (not (.-paused actual)))
+            command-chan (om/get-shared owner :command-channel)
+            playing (cond
+                      (and actually-playing (not want-play))
+                      :pending
+                      (and (not actually-playing) want-play)
+                      :pending
+                      (:playing wanted)
+                      true
+                      :else false)
+            track (queue-current-entry queue)]
         (html
          [:div {:id "transport"
                 :onClick #(om/transact! app [:viewing-queue?] not)
                 }
           [:span {:className "index"}
-           [:span {:className "current"}
-            (inc (:track-number (player-state)))]
+           [:span {:className "current"} (:next-track queue)]
            "/"
-           [:span {:className "total"}
-            (count (player-queue))]]
+           [:span {:className "total"} (count (:tracks queue))]]
           [:div {:className "title-artist"}
            [:span {:className "title"}
             (get track "title")]
@@ -352,15 +332,21 @@
            [:span {:className "album"}
             (get track "album")]]
           [:span {:className "buttons"}
-           [:button {:onClick (swallowing player-prev) }
+           [:button {:onClick
+                     (swallowing #(put! command-chan [:previous-track]))}
             (svg-skip-track :backwards)]
-           [:button {:onClick (swallowing player-pause) }
-            (if playing? (svg-pause) (svg-play))]
-           [:button {:onClick (swallowing player-next) }
+           [:button {:onClick
+                     (swallowing #(put! command-chan [:toggle-pause]))}
+            (case playing
+              true (svg-pause)
+              :pending (svg-spinner)
+              false (svg-play))]
+           [:button {:onClick
+                     (swallowing #(put! command-chan [:next-track]))}
             (svg-skip-track)]]
           [:span {:className "offset"}
            [:span {:className "elapsed-time time"}
-            (mmss (:track-offset (player-state)))]
+            (mmss (-> wanted :audio-el :time-offset))]
            " / "
            [:span {:className "track-time"}
             (mmss (get track "length" 0))]]
@@ -370,18 +356,19 @@
   (reify
     om/IRender
     (render [this]
-      (let [queue (om/observe owner (player-queue))]
+      (let [queue (-> app :player :queue)
+            command-chan (om/get-shared owner :command-channel)]
         (html
          [:div {}
           [:div {:className "track header"}
            [:span {:className "artist"} "Delete queue"]
-           [:button {:onClick #(dequeue-all)} "-"]]
+           [:button {:onClick #(put! command-chan [:delete-queue])}
+            "-"]]
           (map #(om/build queue-track-view
                           %1
                           {:state
                            {:index %2
-                            :current? (= (-> app :player :track-number)
-                                         %2)
+                            :current? (= (dec (:next-track queue)) %2)
                             }})
                queue (range 0 999))
           ])))))
@@ -483,15 +470,10 @@
       (when (and bits (not (= actual-path bits)))
         (set! (.-src actual) bits)))
 
-    (when (and (.-paused actual) (:playing desired) urls)
-      ;; it might have paused because it reached the end of track, or
-      ;; because the user previously paused it.  If we have music available,
-      ;; now, resume.
-      ;; On Android, this appears to trigger the generation of an ended event
-      ;; that might not otherwise get sent, which is nice.  However,
+    (when (and (.-paused actual) (:want-play desired) urls)
       (.play actual))
 
-    (if-not (:playing desired)
+    (if-not (:want-play desired)
       (.pause actual))))
 
 
@@ -508,19 +490,40 @@
            (om/build queue-view state)]
           [:div {:className "queue tracks" } " "])
         (om/build transport-buttons-view state)
-        (om/build audio-el state)
+        (om/build audio-el (:audio-el (:player state)))
         ]))))
+
+(defmulti dispatch-command (fn  [command & args] command))
+
+(defmethod dispatch-command :enqueue [_ track]
+  (swap! app-state #(update-in % [:player :queue] enqueue-track track)))
+
+(defmethod dispatch-command :toggle-pause [_]
+  (swap! app-state #(update-in % [:player :want-play] not)))
+
+(defmethod dispatch-command :next-track [_]
+  (swap! app-state #(update-in % [:player :queue] advance-queue)))
+
+;; still to add: [dequeue previous-track delete-queue]
+
+(defn command-loop []
+  (let [ch (chan)]
+    (go
+      (loop []
+        (let [command (<! ch)]
+          (apply dispatch-command command)
+          (recur))))
+    ch))
 
 (defn init []
   (add-watch app-state :transport sync-transport)
   (let [el (. js/document (getElementById "om-app"))
+        command-chan (command-loop)
         search (chan)]
     (om/root app-view app-state
              {:target el
-              :shared {:search-channel search}})))
+              :shared {:command-channel command-chan
+                       :search-channel search}})))
 
 (.addEventListener js/window "load" init)
-
-
-
 (cljs.test/run-tests)
