@@ -218,20 +218,6 @@
     ))
 
 
-(defn queue-track-view [track owner]
-  (reify
-    om/IRenderState
-    (render-state [this {:keys [index current?]}]
-      (let [command-chan (om/get-shared owner :command-channel)]
-        (html
-         [:div {:className (if current? "current-track track" "track")}
-          [:span {:className "artist"} (get track "artist")]
-          [:span {:className "album"} (get track "album" )]
-          [:span {:className "title"} (get track "title")]
-          [:span {:className "duration"} (mmss (get track "length"))]
-          [:button {:onClick #(put! command-chan [:dequeue index])}
-           "-"]])))))
-
 (defn audio-el [state owner]
   (reify
     om/IDidMount
@@ -351,6 +337,20 @@
            [:span {:className "track-time"}
             (mmss (get track "length" 0))]]
           ])))))
+
+(defn queue-track-view [track owner]
+  (reify
+    om/IRenderState
+    (render-state [this {:keys [index current?]}]
+      (let [command-chan (om/get-shared owner :command-channel)]
+        (html
+         [:div {:className (if current? "current-track track" "track")}
+          [:span {:className "artist"} (get track "artist")]
+          [:span {:className "album"} (get track "album" )]
+          [:span {:className "title"} (get track "title")]
+          [:span {:className "duration"} (mmss (get track "length"))]
+          [:button {:onClick #(put! command-chan [:dequeue index])}
+           "-"]])))))
 
 (defn queue-view [app owner]
   (reify
