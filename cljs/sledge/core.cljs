@@ -489,25 +489,26 @@
         (om/build audio-el (:audio-el (:player state)))
         ]))))
 
-(defmulti dispatch-command (fn  [command & args] command))
+(defmulti dispatch-command (fn  [val command & args] command))
 
-(defmethod dispatch-command :enqueue [_ track]
-  (swap! app-state #(update-in % [:player :queue] enqueue-track track)))
+(defmethod dispatch-command :enqueue [val _ track]
+  (update-in val [:player :queue] enqueue-track track))
 
-(defmethod dispatch-command :toggle-pause [_]
-  (swap! app-state #(update-in % [:player :want-play] not)))
+(defmethod dispatch-command :toggle-pause [val _]
+  (update-in val [:player :want-play] not))
 
-(defmethod dispatch-command :next-track [_]
-  (swap! app-state #(update-in % [:player :queue] advance-queue)))
+(defmethod dispatch-command :next-track [val _]
+  (update-in val [:player :queue] advance-queue))
 
 ;; still to add: [dequeue previous-track delete-queue]
+
 
 (defn command-loop []
   (let [ch (chan)]
     (go
       (loop []
         (let [command (<! ch)]
-          (apply dispatch-command command)
+          (swap! app-state #(apply dispatch-command % command))
           (recur))))
     ch))
 
