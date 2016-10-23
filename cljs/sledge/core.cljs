@@ -221,7 +221,7 @@
     om/IDidMount
     (did-mount [_]
       (let [el (om/get-node owner)]
-        ;; add capturing handler (last arg "true")
+        ;; this is a capturing handler (last arg "true")
         ;; cos audio events don't bubble
         (.addEventListener el "ended"
                            #(om/update! state [:ended] true)
