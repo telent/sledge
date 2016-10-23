@@ -444,16 +444,6 @@
                          {:init-state {:string ""}})
                (om/build results-view (:results search))))))
 
-#_
-(defn print-debuggy-stuff []
-  (let [p (player-el)]
-    (println [(.-currentTime p)
-              (.-duration p)
-              (.-paused p)
-              (.-networkState p)
-              (.-ended p)
-              (:track-number (player-state))
-              ])))
 
 (defn sync-transport [_ ref o n]
   (let [desired (:player n)
