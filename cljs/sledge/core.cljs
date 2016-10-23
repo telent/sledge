@@ -205,7 +205,7 @@
                                        tracks)))}
                     "+")
             track-components
-            (om/build-all results-track-view tracks)]
+            (om/build-all results-track-view tracks {:key "pathname"} )]
         (apply dom/div #js {:className "results tracks" }
                (dom/div #js {:className "track"}
                         (dom/span #js {:id "queue-all-tracks"}
@@ -281,12 +281,11 @@
 (defn player-el []
   (aget (.getElementsByTagName js/document "audio") 0))
 
-(defn transport-buttons-view [app owner]
+(defn transport-buttons-view [wanted owner]
   (reify
     om/IRender
     (render [this]
-      (let [wanted (:player app)
-            queue (:queue wanted)
+      (let [queue (:queue wanted)
             actual (player-el)
             want-play (:playing (:audio-el wanted))
             actually-playing (and actual (not (.-paused actual)))
@@ -302,7 +301,7 @@
             track (queue-current-entry queue)]
         (html
          [:div {:id "transport"
-                :onClick #(om/transact! app [:viewing-queue?] not)
+                :onClick #(om/transact! wanted [:viewing-queue?] not)
                 }
           [:span {:className "index"}
            [:span {:className "current"} (:next-track queue)]
@@ -482,11 +481,11 @@
        [:div
         [:header {:className "default-primary-color" } "sledge"]
         (om/build search-view (:search state))
-        (if (:viewing-queue? state)
+        (if (:viewing-queue? (:player state))
           [:div {:className "queue queue-open tracks" }
            (om/build queue-view (:queue (:player state)))]
           [:div {:className "queue tracks" } " "])
-        (om/build transport-buttons-view state)
+        (om/build transport-buttons-view (:player state))
         (om/build audio-el (:audio-el (:player state)))
         ]))))
 
