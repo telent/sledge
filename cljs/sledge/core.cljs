@@ -29,8 +29,6 @@
 ;; current play time.  when we use the 'skip track' button we also
 ;; have to tell the player to change track. so there's information
 ;; flowing both ways there
-;;
-
 
 (def app-state
   (atom
@@ -352,12 +350,11 @@
           [:button {:onClick #(put! command-chan [:dequeue index])}
            "-"]])))))
 
-(defn queue-view [app owner]
+(defn queue-view [queue owner]
   (reify
     om/IRender
     (render [this]
-      (let [queue (-> app :player :queue)
-            command-chan (om/get-shared owner :command-channel)]
+      (let [command-chan (om/get-shared owner :command-channel)]
         (html
          [:div {}
           [:div {:className "track header"}
@@ -487,7 +484,7 @@
         (om/build search-view (:search state))
         (if (:viewing-queue? state)
           [:div {:className "queue queue-open tracks" }
-           (om/build queue-view state)]
+           (om/build queue-view (:queue (:player state)))]
           [:div {:className "queue tracks" } " "])
         (om/build transport-buttons-view state)
         (om/build audio-el (:audio-el (:player state)))
