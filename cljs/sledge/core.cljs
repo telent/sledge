@@ -23,87 +23,92 @@
      :player {
               :queue {
                       :tracks []
-                      :next-track 0 ; now-playing (dec next-track)
+                      :current-track 0
                       }
               :want-play true
               :audio-el {:track-offset 0 :playing false}
               }
      }))
 
-(defn empty-queue [] {:tracks [] :next-track 0})
+
+(defn empty-queue [] {:tracks [] :current-track 0})
+
+(defn queue-empty?
+  "True if there is no music left and playback must stop until a track is added"
+  [queue]
+  (>= (:current-track queue) (count (:tracks queue))))
+
+(deftest queue-empty-test
+  (is (queue-empty? (empty-queue)))
+  (is (not (queue-empty? {:tracks [:a] :current-track 0})))
+  (is (queue-empty? {:tracks [:a] :current-track 1}))
+  (let [q {:tracks [:a :b :c :d] :current-track 0}]
+    (is (not (queue-empty? q)))))
 
 (defn queue-current-entry
-  "Return the current entry in the queue, or nil if empty"
+  "Return the current entry in the queue, or nil if at end"
   [queue]
-  (let [tracks (:tracks queue)
-        nxt (:next-track queue)]
-    (if (seq tracks)
-      (if (zero? nxt)
-        (first tracks)                  ; dubious
-        (nth tracks (dec nxt))))))
+  (if (queue-empty? queue)
+    nil
+    (let [tracks (:tracks queue)
+          cur (:current-track queue)]
+      (nth tracks cur))))
 
 (deftest queue-current-test
   (is (nil? (queue-current-entry (empty-queue))))
-  (let [q {:tracks [:a :b :c :d] :next-track 2}]
-    (is (= (queue-current-entry q) :b))
-    (is (= (queue-current-entry {:tracks [] :next-track 0}) nil))))
-
-
-(defn queue-empty?
-  "Have we run out of tracks to play when the current track (if any) is done?"
-  [queue]
-  (>= (:next-track queue) (count (:tracks queue))))
+  (let [q {:tracks [:a :b :c :d] :current-track 2}]
+    (is (= (queue-current-entry q) :c))
+    (is (= (queue-current-entry (empty-queue)) nil))
+    (is (= (queue-current-entry {:tracks [:a] :current-track 0}) :a))
+    (is (= (queue-current-entry {:tracks [:a] :current-track 1}) nil))))
 
 (defn queued-track
   [queue]
   (if (not (queue-empty? queue))
-    (nth (:tracks queue) (:next-track queue))))
+    (nth (:tracks queue) (inc (:current-track queue)))))
 
-(deftest queue-empty-test
-  (is (queue-empty? (empty-queue)))
-  (is (not (queue-empty? {:tracks [:a] :next-track 0})))
-  (is (queue-empty? {:tracks [:a] :next-track 1}))
-  (let [q {:tracks [:a :b :c :d] :next-track 0}]
-    (is (= (queued-track q) :a))
-    (is (not (queue-empty? q)))))
+(deftest queued-track-test
+  (let [q {:tracks [:a :b :c :d] :current-track 0}]
+    (is (= (queued-track q) :b))))
 
 (defn advance-queue [queue]
   (if (queue-empty? queue)
     queue
-    (update-in queue [:next-track] inc)))
+    (update-in queue [:current-track] inc)))
 
 (deftest advance-queue-test
-  (let [q {:tracks [:a :b :c :d] :next-track 0}
+  (let [q {:tracks [:a :b :c :d] :current-track 0}
         q1 (advance-queue q)
         q2 (-> q1 advance-queue advance-queue advance-queue advance-queue)]
-    (is (= (:next-track q1) 1))
+    (is (= (:current-track q1) 1))
     (is (nil? (queued-track q2) ))
     (is (= (queued-track q2) (queued-track (advance-queue q2))))
     (is (= (:tracks q1) (:tracks q)))))
-
-
-(defn remove-from-queue [queue track]
-  (if (some #{track} (subvec (:tracks queue) (:next-track queue)))
-    (update-in queue [:tracks] (partial remove #{track}))
-    queue))
-
-(deftest remove-from-queue-test
-  (let [q {:tracks [:a :b :c :d] :next-track 2}]
-    ;; can only remove unplayed tracks from queue
-    (is (= (remove-from-queue q :c) {:tracks [:a :b :d] :next-track 2}))
-    (is (= (remove-from-queue q :a) q)))
-  (let [q (empty-queue)]
-    ;; ok to remove a track that's not there
-    (is (= (remove-from-queue q :foo) q))))
-
 
 (defn enqueue-track [queue track]
   (update-in queue [:tracks] conj track))
 
 (deftest enqueue-test
-  (let [q {:tracks [:a :b :c :d] :next-track 2}]
-    (is (= (:tracks (enqueue-track q :z)) [:a :b :c :d :z]))))
+  (let [q (-> (empty-queue) (enqueue-track :a) (enqueue-track :b))]
+    (is (= (queue-current-entry q) :a))
+    (is (= (:tracks q) [:a :b]))))
 
+
+(defn remove-from-queue [queue track]
+  (if (and (not (queue-empty? queue))
+           (some #{track} (subvec (:tracks queue) (inc (:current-track queue)))))
+    (update-in queue [:tracks] (partial remove #{track}))
+    queue))
+
+(deftest remove-from-queue-test
+  (let [q {:tracks [:a :b :c :d] :current-track 2}]
+    ;; can only remove unplayed tracks from queue
+    (is (= (remove-from-queue q :d) {:tracks [:a :b :c] :current-track 2}))
+    (is (= (remove-from-queue q :c) q))
+    (is (= (remove-from-queue q :a) q)))
+  (let [q (empty-queue)]
+    ;; ok to remove a track that's not there
+    (is (= (remove-from-queue q :foo) q))))
 
 (defn mmss [seconds]
   (let [m (quot seconds 60)
@@ -348,7 +353,7 @@
                           %1
                           {:state
                            {:index %2
-                            :current? (= (dec (:next-track queue)) %2)
+                            :current? (= (:current-track queue) %2)
                             }})
                (:tracks queue) (range 0 999))
           ])))))
