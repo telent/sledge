@@ -25,8 +25,8 @@
                       :tracks []
                       :current-track 0
                       }
-              :want-play true
-              :audio-el {:track-offset 0 :playing false}
+              :want-play false
+              :audio-el {:track-offset 0 :playing false :ready-state nil}
               }
      }))
 
@@ -267,34 +267,63 @@
 (defn player-el []
   (aget (.getElementsByTagName js/document "audio") 0))
 
-(defn transport-buttons-view [wanted owner]
+(defn transport-elapsed-view [audio-el owner opts]
   (reify
     om/IRender
     (render [this]
-      (let [queue (:queue wanted)
-            actual (player-el)
-            want-play (:playing (:audio-el wanted))
-            actually-playing (and actual (not (.-paused actual)))
-            command-chan (om/get-shared owner :command-channel)
+      (let [track-length (:track-length opts)]
+        (html
+         [:span
+          [:span {:className "offset"}
+           [:span {:className "elapsed-time time"}
+            (mmss (:time-offset audio-el))]
+           " / "
+           [:span {:className "track-time"}
+            (mmss track-length)]]
+          ])))))
+
 (defn swallowing [h]
   (fn [e]
     (let [r (h e)]
       (.stopPropagation e)
       r)))
 
+(defn transport-buttons-view [state owner opts]
+  (reify
+    om/IRender
+    (render [this]
+      (let [command-chan (om/get-shared owner :command-channel)
+            player-state (:audio-el state)
             playing (cond
-                      (and actually-playing (not want-play))
+                      (and (if-let [r (:ready-state player-state)] (< r 4))
+                           (:want-play state))
                       :pending
-                      (and (not actually-playing) want-play)
-                      :pending
-                      (:playing wanted)
+                      (:want-play state)
                       true
-                      :else false)
-            track (queue-current-entry queue)]
+                      :else
+                      false)]
         (html
-         [:div {:id "transport"
-                :onClick #(om/transact! wanted [:viewing-queue?] not)
-                }
+         [:span {:className "buttons"}
+          [:button {:onClick
+                    (swallowing #(put! command-chan [:previous-track]))}
+           (svg-skip-track :backwards)]
+          [:button {:onClick
+                    (swallowing #(put! command-chan [:toggle-pause]))}
+           (case playing
+             true (svg-pause)
+             :pending (svg-spinner)
+             false (svg-play))]
+          [:button {:onClick
+                    (swallowing #(put! command-chan [:next-track]))}
+           (svg-skip-track)]])))))
+
+(defn transport-track-view [queue owner opts]
+  (reify
+    om/IRender
+    (render [this]
+      (let [track (queue-current-entry queue)]
+        (html
+         [:span
           [:span {:className "index"}
            [:span {:className "current"} (inc (:current-track queue))]
            "/"
@@ -305,27 +334,25 @@
            [:span {:className "artist"}
             (get track "artist")]
            [:span {:className "album"}
-            (get track "album")]]
-          [:span {:className "buttons"}
-           [:button {:onClick
-                     (swallowing #(put! command-chan [:previous-track]))}
-            (svg-skip-track :backwards)]
-           [:button {:onClick
-                     (swallowing #(put! command-chan [:toggle-pause]))}
-            (case playing
-              true (svg-pause)
-              :pending (svg-spinner)
-              false (svg-play))]
-           [:button {:onClick
-                     (swallowing #(put! command-chan [:next-track]))}
-            (svg-skip-track)]]
-          [:span {:className "offset"}
-           [:span {:className "elapsed-time time"}
-            (mmss (-> wanted :audio-el :time-offset))]
-           " / "
-           [:span {:className "track-time"}
-            (mmss (get track "length" 0))]]
-          ])))))
+            (get track "album")]]])))))
+
+(defn transport-strip-view [wanted owner]
+  (reify
+    om/IRender
+    (render [this]
+      (let [queue (:queue wanted)
+            track (queue-current-entry queue)]
+        (if track
+          (html
+           [:div {:id "transport"
+                  :onClick #(om/transact! wanted [:viewing-queue?] not)
+                  }
+            (om/build transport-buttons-view wanted)
+            (om/build transport-elapsed-view (:audio-el wanted)
+                      {:opts {:track-length (get track "length")}})
+            (om/build transport-track-view queue)])
+          (html
+           [:div {:id "transport"} "Choose tracks to add to play queue"]))))))
 
 (defn queue-track-view [track owner]
   (reify
@@ -438,21 +465,22 @@
 
 
 (defn sync-transport [_ ref o n]
-  (let [desired (:player n)
-        actual (player-el)
-        urls (queue-current-entry (:queue desired))]
-
-    ;; find out what track we should be playing
-    (let [bits (best-media-url urls)
+  (when-let [actual (player-el)]
+    (let [player-state (:player n)
+          queue (:queue player-state)
+          playable? (not (queue-empty? queue))
+          track (and playable? (queue-current-entry queue))
+          bits (and track (best-media-url track))
           actual-path (.getPath (goog.Uri. (.-src actual)))]
+
       (when (and bits (not (= actual-path bits)))
-        (set! (.-src actual) bits)))
+        (set! (.-src actual) bits))
 
-    (when (and (.-paused actual) (:want-play desired) urls)
-      (.play actual))
+      (when (and (.-paused actual) (:want-play player-state) track)
+        (.play actual))
 
-    (if-not (:want-play desired)
-      (.pause actual))))
+      (if-not (and playable? (:want-play player-state))
+        (.pause actual)))))
 
 
 (defn app-view [state owner]
@@ -467,7 +495,7 @@
           [:div {:className "queue queue-open tracks" }
            (om/build queue-view (:queue (:player state)))]
           [:div {:className "queue tracks" } " "])
-        (om/build transport-buttons-view (:player state))
+        (om/build transport-strip-view (:player state))
         (om/build audio-el (:audio-el (:player state)))
         ]))))
 
@@ -502,7 +530,8 @@
     (om/root app-view app-state
              {:target el
               :shared {:command-channel command-chan
-                       :search-channel search}})))
+                       :search-channel search}})
+    (swap! app-state assoc-in [:player :want-play] true)))
 
 (.addEventListener js/window "load" init)
 (cljs.test/run-tests)
