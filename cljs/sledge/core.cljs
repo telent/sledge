@@ -411,7 +411,9 @@
                                   :id "search-term"
                                   :type "text"
                                   :size "10"
-                                  :placeholder "Search artist/album/title"
+                                  :placeholder (if (seq term)
+                                                 ""
+                                                 "Search artist/album/title")
                                   :value (:string state)
                                   :onChange
                                   #(om/set-state! owner :string
