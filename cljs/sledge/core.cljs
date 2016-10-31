@@ -204,29 +204,32 @@
         ))))
 
 
+(defn update-audio-time [state event]
+  (let [target (.-target event)
+        time (Math/floor (.-currentTime target))]
+    ;; don't update! on timeupdate unless the state has actually changed
+    (if-not (= (:time-offset @state) time)
+      (om/update! state [:time-offset] time))))
 
 (defn audio-el [state owner]
   (reify
-    om/IDidMount
-    (did-mount [_]
-      (let [el (om/get-node owner)]
-        ;; this is a capturing handler (last arg "true")
-        ;; cos audio events don't bubble
-        (.addEventListener el "ended"
-                           #(om/update! state [:ended] true)
-                           true)
-        (.addEventListener el "timeupdate"
-                           #(om/update! state [:time-offset]
-                                        (.-currentTime (.-target %))))))
     om/IRender
-    (render [_]
-      (html [:audio {:ref "player"}]))))
 
 (defn swallowing [h]
   (fn [e]
     (let [r (h e)]
       (.stopPropagation e)
       r)))
+    (render [this]
+      (let [command-chan (om/get-shared owner :command-channel)]
+        (html
+         [:audio {:ref "player"
+                  :loop false
+                  :onTimeUpdate (partial update-audio-time state)
+                  :onProgress #(om/update! state [:ready-state]
+                                           (.-readyState (.-target %)))
+                  :onEnded #(put! command-chan [:next-track])
+                  }])))))
 
 (defn svg [& elements]
   (into
