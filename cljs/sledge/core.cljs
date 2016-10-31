@@ -214,12 +214,6 @@
 (defn audio-el [state owner]
   (reify
     om/IRender
-
-(defn swallowing [h]
-  (fn [e]
-    (let [r (h e)]
-      (.stopPropagation e)
-      r)))
     (render [this]
       (let [command-chan (om/get-shared owner :command-channel)]
         (html
@@ -282,6 +276,12 @@
             want-play (:playing (:audio-el wanted))
             actually-playing (and actual (not (.-paused actual)))
             command-chan (om/get-shared owner :command-channel)
+(defn swallowing [h]
+  (fn [e]
+    (let [r (h e)]
+      (.stopPropagation e)
+      r)))
+
             playing (cond
                       (and actually-playing (not want-play))
                       :pending
@@ -296,7 +296,7 @@
                 :onClick #(om/transact! wanted [:viewing-queue?] not)
                 }
           [:span {:className "index"}
-           [:span {:className "current"} (:next-track queue)]
+           [:span {:className "current"} (inc (:current-track queue))]
            "/"
            [:span {:className "total"} (count (:tracks queue))]]
           [:div {:className "title-artist"}
