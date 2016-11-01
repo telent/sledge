@@ -124,19 +124,21 @@ div#transport {
     position: fixed;
     width: 100%;
     color: white;
-    padding: 6px;
     height: 40px;
-    background: black ;
+    background: black;
     bottom: 0px;
     font-stretch: condensed;
+    display: block;
+    padding: 0;
 }
 
 #transport .index {
+    display: inline-block;
     font-size: 0.9em;
     font-weight: bold;
     margin-right: 1em;
     position: relative;
-    top: -0.7rem;
+    bottom: 0.5rem;
 }
 
 #transport .index .current {
@@ -151,9 +153,17 @@ div#transport {
 }
 
 #transport .title-artist {
-    overflow-x: hidden;
-    max-width: 60%;
     display: inline-block;
+}
+
+#transport .right {
+    display: inline-block;
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+#transport .title-artist {
     font-size: 90%;
 }
 #transport .title-artist .artist:before {
@@ -166,15 +176,10 @@ div#transport {
     font-size: 90%;
     color: yellow;
 }
-               
-#transport .buttons {
-    float: right;
-}
 
-#transport .offset {
-    float: right;
-    padding-top: 0.25rem;
-    padding-right: 0.7rem;
+#transport .elapsed {
+    display: inline-block;
+    padding-right: 0.5rem;
 }
 
 #transport div.spinning {

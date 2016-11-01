@@ -273,14 +273,13 @@
     (render [this]
       (let [track-length (:track-length opts)]
         (html
-         [:span
-          [:span {:className "offset"}
-           [:span {:className "elapsed-time time"}
-            (mmss (:time-offset audio-el))]
-           " / "
-           [:span {:className "track-time"}
-            (mmss track-length)]]
-          ])))))
+         [:span {:className "elapsed"}
+          [:span {:className "elapsed-time time"}
+           (mmss (:time-offset audio-el))]
+          " / "
+          [:span {:className "track-time time"}
+           (mmss track-length)]]
+         )))))
 
 (defn swallowing [h]
   (fn [e]
@@ -317,24 +316,30 @@
                     (swallowing #(put! command-chan [:next-track]))}
            (svg-skip-track)]])))))
 
+(defn transport-index-view [queue owner opts]
+  (reify
+    om/IRender
+    (render [this]
+      (let [track (queue-current-entry queue)]
+        (html
+         [:span {:className "index"}
+          [:span {:className "current"} (inc (:current-track queue))]
+          "/"
+          [:span {:className "total"} (count (:tracks queue))]])))))
+
 (defn transport-track-view [queue owner opts]
   (reify
     om/IRender
     (render [this]
       (let [track (queue-current-entry queue)]
         (html
-         [:span
-          [:span {:className "index"}
-           [:span {:className "current"} (inc (:current-track queue))]
-           "/"
-           [:span {:className "total"} (count (:tracks queue))]]
-          [:div {:className "title-artist"}
-           [:span {:className "title"}
-            (get track "title")]
-           [:span {:className "artist"}
-            (get track "artist")]
-           [:span {:className "album"}
-            (get track "album")]]])))))
+         [:span {:className "title-artist"}
+          [:span {:className "title"}
+           (get track "title")]
+          [:span {:className "artist"}
+           (get track "artist")]
+          [:span {:className "album"}
+           (get track "album")]])))))
 
 (defn transport-strip-view [wanted owner]
   (reify
@@ -347,10 +352,13 @@
            [:div {:id "transport"
                   :onClick #(om/transact! wanted [:viewing-queue?] not)
                   }
-            (om/build transport-buttons-view wanted)
-            (om/build transport-elapsed-view (:audio-el wanted)
-                      {:opts {:track-length (get track "length")}})
-            (om/build transport-track-view queue)])
+            (om/build transport-index-view queue)
+            (om/build transport-track-view queue)
+            [:span {:className "right"}
+             (om/build transport-elapsed-view (:audio-el wanted)
+                       {:opts {:track-length (get track "length")}})
+             (om/build transport-buttons-view wanted)
+             ]])
           (html
            [:div {:id "transport"} "Choose tracks to add to play queue"]))))))
 
