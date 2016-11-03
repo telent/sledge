@@ -124,20 +124,21 @@ div#transport {
     position: fixed;
     width: 100%;
     color: white;
-    padding: 6px;
     height: 40px;
-    background: black ;
+    background: black;
     bottom: 0px;
     font-stretch: condensed;
-}
-div#transport:hover {
-    height: 42px;
+    display: block;
+    padding: 0;
 }
 
 #transport .index {
+    display: inline-block;
     font-size: 0.9em;
     font-weight: bold;
     margin-right: 1em;
+    position: relative;
+    bottom: 0.5rem;
 }
 
 #transport .index .current {
@@ -151,12 +152,48 @@ div#transport:hover {
     top: 0.4em;
 }
 
-#transport .buttons {
-    float: right;
+#transport .title-artist {
+    display: inline-block;
 }
 
-#transport .offset {
-    float: right;
+#transport .right {
+    display: inline-block;
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+#transport .title-artist {
+    font-size: 90%;
+}
+#transport .title-artist .artist:before {
+    content: " - ";
+}
+#transport .title-artist .album:before {
+    content:"\a"; white-space: pre;
+}
+#transport .title-artist .album {
+    font-size: 90%;
+    color: yellow;
+}
+
+#transport .elapsed {
+    display: inline-block;
+    padding-right: 0.5rem;
+}
+
+#transport div.spinning {
+    animation: spin 3s linear infinite;
+    -moz-animation: spin 3s linear infinite;
+    -webkit-animation: spin 3s linear infinite;
+}
+@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+@keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform:rotate(360deg);
+    }
 }
 
 div.scrolling {

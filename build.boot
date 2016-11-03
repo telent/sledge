@@ -38,6 +38,15 @@
          concat '[cemerick.piggieback/wrap-cljs-repl])
   identity)
 
+(deftask reload-browser []
+  (with-pre-wrap [fileset]
+    (boot.util/info "reloading browser ...")
+    (clojure.java.shell/sh "xdotool"
+                           "search" "--onlyvisible"  "Sledge - Nightly"
+                           "key" "F5")
+    (boot.util/info "\n")
+    fileset))
+
 (defn wait-for-browser-repl []
   (cemerick.piggieback/cljs-repl
    (weasel.repl.websocket/repl-env :ip "0.0.0.0" :port 9001)))
