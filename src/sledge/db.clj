@@ -4,6 +4,7 @@
             [clojure.pprint :refer [pp pprint]]
             [clojure.edn :as edn]
             [clojure.set :as set]
+            [clojure.test :as test :refer [deftest is testing]]
             [clojure.string :as str])  )
 
 
@@ -16,8 +17,9 @@
       	      token-map
               (into {} (map vector tokens (repeat #{val})))))
 
-(assert (= (add-tokens {} "/hell.mp3" ["Foo" "Fighters"])
-           {"Fighters" #{"/hell.mp3"}, "Foo" #{"/hell.mp3"}}))
+(deftest toking
+  (is (= (add-tokens {} "/hell.mp3" ["Foo" "Fighters"])
+         {"Fighters" #{"/hell.mp3"}, "Foo" #{"/hell.mp3"}})))
 
 (defn assoc-adjunct-index [index name-map tokenize]
   (reduce (fn [m [filename tags]]
@@ -28,12 +30,16 @@
 (defn make-adjunct-index [name-map tokenize]
   (assoc-adjunct-index {} name-map tokenize))
 
-(let [name-map {"/l.mp3" {:author "Foo Fighters"}
-                "/pretenders.mp3" {:author "Foo Fighters"}
-                "/box.mp3" {:author "Orbital" :title "The Box"}}]
-  (make-adjunct-index name-map
-                      #(set (str/split (:author %) #" "))))
-
+(deftest adjunct-index-test
+  (let [name-map {"/l.mp3" {:author "Foo Fighters"}
+                  "/pretenders.mp3" {:author "Foo Fighters"}
+                  "/box.mp3" {:author "Orbital" :title "The Box"}}]
+    (is (=
+         (make-adjunct-index name-map
+                             #(set (str/split (:author %) #" ")))
+         {"Fighters" #{"/l.mp3" "/pretenders.mp3"},
+          "Foo" #{"/l.mp3" "/pretenders.mp3"},
+          "Orbital" #{"/box.mp3"}}))))
 
 (defn lower-words [x]
   (set/difference

@@ -11,6 +11,7 @@
             [ring.middleware.params :as wp]
             [ring.middleware.resource :as res]
             [ring.util.response :as response]
+            [clojure.test :as test :refer [deftest is testing]]
             )
   (:import [org.apache.commons.codec.binary Base64 Hex]))
 
@@ -24,15 +25,11 @@
         pad-l (- 4 (- l (* 4 (quot l 4))))]
     (String. (Base64/decodeBase64 (str string (str/join (repeat pad-l "=")))))))
 
-(assert
- (= (base64
-     "this string will base64 encode into something longher than one line")
-    "dGhpcyBzdHJpbmcgd2lsbCBiYXNlNjQgZW5jb2RlIGludG8gc29tZXRoaW5nIGxvbmdoZXIgdGhhbiBvbmUgbGluZQ"))
-
-(assert
- (= (unbase64
-     "dGhpcyBzdHJpbmcgd2lsbCBiYXNlNjQgZW5jb2RlIGludG8gc29tZXRoaW5nIGxvbmdoZXIgdGhhbiBvbmUgbGluZQ")
-    "this string will base64 encode into something longher than one line"))
+(deftest all-your-base64
+  (let [from "this string will base64 encode into something longher than one line"
+        to "dGhpcyBzdHJpbmcgd2lsbCBiYXNlNjQgZW5jb2RlIGludG8gc29tZXRoaW5nIGxvbmdoZXIgdGhhbiBvbmUgbGluZQ"]
+    (is (= (base64 from) to))
+    (is (= (unbase64 to) from))))
 
 ;; given some input format, decide what format(s) we can offer it
 ;; to the user in
@@ -85,22 +82,16 @@
             {}
             (conj (seq (:transcode enc)) (:suffix enc)))))
 
-(media-links {:encoding-type "FLAC 16 bits"
-              :pathname "/path/to/audio.flac"})
-
-
-(assert
- (=
-  (media-links {:encoding-type "FLAC 16 bits"
-                :pathname "/path/to/audio.flac"})
-  {"mp3"
-   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3", "codecs" "mp3", "type" "audio/mpeg"},
-   "ogg"
-   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg", "codecs" "vorbis", "type" "audio/ogg"}
-   "flac"
-   {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}}))
-
-;  :; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
+(deftest media-links-test
+  (is (=
+       (media-links {:encoding-type "FLAC 16 bits"
+                     :pathname "/path/to/audio.flac"})
+       {"mp3"
+        {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.mp3", "codecs" "mp3", "type" "audio/mpeg"},
+        "ogg"
+        {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.ogg", "codecs" "vorbis", "type" "audio/ogg"}
+        "flac"
+        {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}})))
 
 
 (defn tracks-data [req]
