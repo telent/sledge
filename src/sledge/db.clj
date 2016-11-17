@@ -122,6 +122,30 @@
                      (= (get tags (keyword attr)) string))))
 	    likes)))
 
+
+(def rand-mask (dec (bit-shift-left 1 31)))
+
+(defn lcg [x]
+  ;; http://www.firstpr.com.au/dsp/rand31/
+  (let [k 16807]
+    (mod (* x k) rand-mask)))
+
+(deftest lcg-test
+  (is (= (take 10 (iterate lcg 1))
+         '(1 16807 282475249 1622650073 984943658 1144108930 470211272 101027544 1457850878 1458777923))))
+
+(defn random-tracks [index seed length]
+  (let [seed (bit-and rand-mask seed)
+        all-paths (keys (:data index))
+        scale (quot (inc rand-mask) (count all-paths))
+        randoms (take length (iterate lcg seed))
+        paths (map (fn [r] (nth all-paths (quot r scale))) randoms)]
+    (map #(vector % 1) paths)))
+
+(defmethod where "in" [index [_ playlist-name]]
+  (random-tracks index (.hashCode playlist-name) 10))
+
+
 (defn write-log [name-map filename]
   (with-open [f (io/writer filename)]
     (binding [*out* f]
