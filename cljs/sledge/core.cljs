@@ -136,14 +136,14 @@
                     #js {:className "artist"
                          :onClick #(put! search-chan
                                          [:add
-                                          [[:artist (get @track "artist")]]])}
+                                          [[:= "artist" (get @track "artist")]]])}
                     (get track "artist"))
             album (dom/span
                    #js {:className "album"
                         :onClick #(put! search-chan
                                         [:add
-                                         [[:artist (get @track "artist")]
-                                          [:album (get @track "album")]]])}
+                                         [[:= "artist" (get @track "artist")]
+                                          [:= "album" (get @track "album")]]])}
                    (get track "album"))
             title (dom/span #js {:className "title"}
                             (str (get track "track") " - " (get track "title")))
@@ -158,9 +158,7 @@
 
 
 (defn xhr-search [term]
-  (let [term (filter second term)
-        json-term (apply vector "and"
-                         (map (fn [[k v]] ["like" (name k) v]) term))
+  (let [json-term (apply vector "and" term)
         body (.stringify js/JSON (clj->js json-term))
         channel (chan)]
     (.send XhrIo "/tracks.json"
@@ -396,6 +394,33 @@
                (:tracks queue) (range 0 999))
           ])))))
 
+(defn playlists-view [value owner]
+  (reify
+    om/IRender
+    (render [this]
+      (let [lists ["random verbiage" "upbeat" "rhythm is a dunster"]
+            search-chan (om/get-shared owner :search-channel)]
+        (html
+         [:div {:id "playlists"}
+          [:ul
+           (mapv (fn [l]
+                   [:li {:key l
+                         :onClick #(put! search-chan [:add [[:in l]]])}
+                    l])
+                 lists)]])))))
+
+(defmulti format-search-term (fn [op & terms] op))
+
+(defmethod format-search-term :like [_ field value]
+  (str field ": " value))
+
+(defmethod format-search-term := [_ field value]
+  (str field ": " value))
+
+(defmethod format-search-term :in [_ name]
+  (str "in: " name))
+
+
 (defn search-entry-view [term owner]
   (reify
     om/IRenderState
@@ -404,7 +429,7 @@
             send-search (fn [e]
                           (let [str (.. e -target -value)]
                             (if-not (empty? str)
-                              (put! search-chan [:add [[:_content str]]]))))]
+                              (put! search-chan [:add [[:like "_content" str]]]))))]
         (dom/div
          #js {:className "search-box"}
          (apply dom/span #js {:className "filters" }
@@ -412,8 +437,8 @@
                                      :onClick
                                      (fn [e] (put! search-chan
                                                    [:drop [%]]))}
-                                (str (name (first %)) ": " (second  %)))
-                     (filter second term)))
+                                (apply format-search-term %))
+                     term))
          (dom/div #js {:id "bodge"}
                   (dom/input #js {:ref "search-term"
                                   :id "search-term"
@@ -468,10 +493,13 @@
                 (recur))))))
     om/IRender
     (render [_]
-      (dom/div nil
-               (om/build search-entry-view (:term search)
-                         {:init-state {:string ""}})
-               (om/build results-view (:results search))))))
+      (let [term (:term search)]
+        (dom/div nil
+                 (om/build search-entry-view term
+                           {:init-state {:string ""}})
+                 (if-not (zero? (count term))
+                   (om/build results-view (:results search))
+                   (om/build playlists-view {}) ))))))
 
 
 (defn sync-transport [_ ref o n]

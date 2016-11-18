@@ -93,17 +93,22 @@
         "flac"
         {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}})))
 
+;; :; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
+
+
+(defn tracks-for-query
+  ([db query] (tracks-for-query db query 50))
+  ([db query num-rows]
+   (let [project (if-let [f nil #_ (get p "_fields" ) ]
+                   #(select-keys % (map keyword (str/split f #",")))
+                   #(assoc %
+                           "_links" (media-links %)))]
+     (distinct (map project
+                    (take num-rows (db/entries-where db query )))))))
 
 (defn tracks-data [req]
-  (let [body (if-let [b (:body req)] (slurp b) "[]")
-        query (json/read-str body)
-        num-rows 50
-        project (if-let [f nil #_ (get p "_fields" ) ]
-                  #(select-keys % (map keyword (str/split f #",")))
-                  #(assoc %
-                     "_links" (media-links %)))]
-    (distinct (map project
-                   (take num-rows (db/entries-where (:db req) query ))))))
+  (let [body (if-let [b (:body req)] (slurp b) "[]")]
+    (tracks-for-query (:db req) (json/read-str body) 50)))
 
 (defn tracks-json-handler [req]
   {:status 200
