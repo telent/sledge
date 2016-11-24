@@ -71,10 +71,6 @@ div.search-box {
     height: 36px; /* see #search-term height */
 }
 
-div#bodge {
-    display: inline;
-}
-
 div.search-box input#search-term {
     border: none;
     height: 32px;

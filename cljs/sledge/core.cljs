@@ -439,24 +439,24 @@
                                                    [:drop [%]]))}
                                 (apply format-search-term %))
                      term))
-         (dom/div #js {:id "bodge"}
-                  (dom/input #js {:ref "search-term"
-                                  :id "search-term"
-                                  :type "text"
-                                  :size "10"
-                                  :placeholder (if (seq term)
-                                                 ""
-                                                 "Search artist/album/title")
-                                  :value (:string state)
-                                  :onChange
-                                  #(om/set-state! owner :string
-                                                  (.. % -target -value))
-                                  :onKeyUp
-                                  #(when (= 13 (.-which %))
-                                     (send-search %)
-                                     (om/set-state! owner :string ""))
-                                  :onBlur send-search
-                                  })))
+         (dom/span nil
+                   (dom/input #js {:ref "search-term"
+                                   :id "search-term"
+                                   :type "text"
+                                   :size "10"
+                                   :placeholder (if (seq term)
+                                                  ""
+                                                  "Search artist/album/title")
+                                   :value (:string state)
+                                   :onChange
+                                   #(om/set-state! owner :string
+                                                   (.. % -target -value))
+                                   :onKeyUp
+                                   #(when (= 13 (.-which %))
+                                      (send-search %)
+                                      (om/set-state! owner :string ""))
+                                   :onBlur send-search
+                                   })))
         ))))
 
 (defn can-play? [player media-type codec]
