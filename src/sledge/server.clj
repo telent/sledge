@@ -115,6 +115,8 @@
    :headers {"Content-type" "text/json"}
    :body (json/write-str (tracks-data req))})
 
+(def common-words (line-seq (io/reader (io/resource "words.txt"))))
+
 (defn front-page-view [req]
   [:html
    [:head
@@ -127,7 +129,10 @@
         [:link {:rel "stylesheet"
             :type "text/css"
             :href "/assets/css/palette.css"
-            }]]
+                }]
+    [:script {} (str "var common_words = "
+                     (json/write-str common-words)
+                     ";")]]
    [:body
     [:div {:id "om-app"}]
     (map (fn [url] [:script {:src url :type "text/javascript"}])

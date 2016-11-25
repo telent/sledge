@@ -268,6 +268,15 @@
         (polygon 40,0 80,50 40,100 40,0)
         (polygon 85,0 95,0 95,100 85,100 85,0)]))
 
+(defn svg-shuffle [attrs]
+  (svg
+   (merge {:viewBox "0 0 1000 1000"} attrs)
+   [:path {:d "M64.6,309.4h190.5c40.1,0,75.9,21.3,100.8,54.5c17.7-32.9,39.7-63.3,64.8-90.5c-43.7-44.8-101.6-72.9-165.6-72.9H64.6c-30.1,0-54.5,24.4-54.5,54.5S34.5,309.4,64.6,309.4z"}]
+   [:path {:d "M483,478.8c30-90.2,122.8-169.4,198.7-169.4h100l-70.4,70.4c-21.3,21.3-21.3,55.7,0,77c10.6,10.6,24.6,15.9,38.5,15.9s27.8-5.3,38.5-15.9L990,255L788.2,53.2c-21.3-21.3-55.7-21.3-77,0c-21.3,21.3-21.3,55.7,0,77l70.4,70.4h-100c-123.8,0-256.5,107.1-302,243.8l-25.7,76.8C319,626.2,241.1,690.6,200.6,690.6H64.5C34.3,690.6,10,715,10,745.1c0,30.1,24.3,54.5,54.5,54.5h136.1c100,0,210.3-104.8,256.6-243.8l25.7-76.8L483,478.8z"}]
+   [:path {:d "M711.3,543.1c-21.3,21.3-21.3,55.7,0,77l70.4,70.4H654.4c-69,0-126.8-48.5-146.5-114.7c-14,40.8-34.1,81.6-59.4,119c48.3,63.3,122.1,104.7,205.9,104.7h127.3l-70.4,70.4c-21.3,21.3-21.3,55.7,0,77c10.6,10.6,24.6,15.9,38.5,15.9s27.8-5.3,38.5-15.9L990,745.1L788.2,543.3c-21.3-21.3-55.7-21.3-77,0L711.3,543.1z"}]
+   ))
+
+
 (defn player-el []
   (aget (.getElementsByTagName js/document "audio") 0))
 
@@ -425,8 +434,15 @@
 (defmethod format-search-term := [_ field value]
   (str field ": " value))
 
-(defmethod format-search-term :in [_ name]
-  (str "in: " name))
+(defmethod format-search-term :shuffle [_ name]
+  (str "shuffle: " name))
+
+(defn random-name []
+  (let [c (count js/common_words)
+        i1 (Math/floor (* (Math/random) c))
+        i2 (Math/floor (* (Math/random) c))]
+    (str (nth js/common_words i1) " " (nth js/common_words i2))))
+
 
 
 (defn search-entry-view [term owner]
@@ -434,24 +450,28 @@
     om/IRenderState
     (render-state [this state]
       (let [search-chan (om/get-shared owner :search-channel)
-            send-search (fn [e]
-                          (let [str (.. e -target -value)]
-                            (if-not (empty? str)
-                              (put! search-chan [:add [[:like "_content" str]]]))))]
+            send-search
+            (fn [e]
+              (let [str (.. e -target -value)]
+                (if-not (empty? str)
+                  (put! search-chan [:add [[:like "_content" str]]]))))]
         (dom/div
-         #js {:className "search-box"}
+         #js {:className "search-box"
+              :onClick (fn [e]
+                         (if-let [i (om/get-node owner "search-term")]
+                           (.focus i)))}
          (apply dom/span #js {:className "filters" }
                 (map #(dom/span #js {:className "filter"
                                      :onClick
-                                     (fn [e] (put! search-chan
-                                                   [:drop [%]]))}
+                                     (swallowing
+                                      (fn [e] (put! search-chan
+                                                    [:drop [%]])))}
                                 (apply format-search-term %))
                      term))
          (dom/span nil
                    (dom/input #js {:ref "search-term"
                                    :id "search-term"
                                    :type "text"
-                                   :size "10"
                                    :placeholder (if (seq term)
                                                   ""
                                                   "Search artist/album/title")
@@ -464,8 +484,7 @@
                                       (send-search %)
                                       (om/set-state! owner :string ""))
                                    :onBlur send-search
-                                   })))
-        ))))
+                                   }))) ))))
 
 (defn can-play? [player media-type codec]
   (= "probably"
@@ -485,7 +504,22 @@
 (defn update-term [[command new-terms] previous]
   (case command
     :add (set/union previous (set new-terms))
+    :replace (set new-terms)
     :drop (set/difference previous new-terms)))
+
+(defn shuffle-button [term owner]
+  (reify
+    om/IRender
+    (render [_]
+      (let [channel (om/get-shared owner :search-channel)]
+        (html [:div {:style {:margin-top "3em"
+                             :textAlign "center"}
+                     :onClick
+                     (swallowing
+                      #(put! channel [:replace [[:shuffle (random-name)]]]))
+                     }
+               [:p "Click the shuffle button to pick some random tracks"]
+               (svg-shuffle {:width "4em" :height "4em"})])))))
 
 (defn search-view [search owner]
   (reify
@@ -505,9 +539,10 @@
         (dom/div nil
                  (om/build search-entry-view term
                            {:init-state {:string ""}})
-                 (if-not (zero? (count term))
+                 (if (zero? (count term))
+                   (om/build shuffle-button term)
                    (om/build results-view (:results search))
-                   (om/build playlists-view {}) ))))))
+                   ))))))
 
 
 (defn sync-transport [_ ref o n]
