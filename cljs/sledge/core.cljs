@@ -409,21 +409,6 @@
                (:tracks queue) (range 0 999))
           ])))))
 
-(defn playlists-view [value owner]
-  (reify
-    om/IRender
-    (render [this]
-      (let [lists ["random verbiage" "upbeat" "rhythm is a dunster"]
-            search-chan (om/get-shared owner :search-channel)]
-        (html
-         [:div {:id "playlists"}
-          [:ul
-           (mapv (fn [l]
-                   [:li {:key l
-                         :onClick #(put! search-chan [:add [[:in l]]])}
-                    l])
-                 lists)]])))))
-
 (defmulti format-search-term (fn [op & terms] op))
 
 (defmethod format-search-term :like [_ field value]
