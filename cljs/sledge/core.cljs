@@ -418,7 +418,9 @@
 (defmulti format-search-term (fn [op & terms] op))
 
 (defmethod format-search-term :like [_ field value]
-  (str field ": " value))
+  (if (= field "_content")
+    value
+    (str field ": " value)))
 
 (defmethod format-search-term := [_ field value]
   (str field ": " value))
