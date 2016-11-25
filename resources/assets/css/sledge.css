@@ -64,32 +64,24 @@ div.tracks div.track span {
     display: inline;
 }
 
-div.search-box {
-/*     border: inset 2px; */
-    margin-top: 46px;
-    padding: 8px 0px;
-    height: 36px; /* see #search-term height */
-}
-
-div#bodge {
-    display: inline;
-}
-
-div.search-box input#search-term {
-    border: none;
-    height: 32px;
-    font-size: 18px;
-    position: absolute;
-    margin: 0 4px; 
-    background: transparent;
-/*    background-image: url(/images/search.png); */
-    background-position: right center;
-    background-repeat: no-repeat;
+.search-box {
+    margin-top: 60px;
+    padding: 4px 3px;
+    white-space: nowrap;
+    position: relative;
     width: 100%;
+    
+    display: inline-block;
+    border: inset 1px; 
 }
 
-span.filters {
-/*    float: left; */
+.search-box #btn-shuffle {
+    position: absolute;
+    right: 0;
+}
+
+.search-box #search-term {    
+    border: none;
 }
 
 span.filters span.filter {
@@ -100,6 +92,7 @@ span.filters span.filter {
     margin: 0 0.2em 0.2em 0;
     padding: 0.3em;
     font-weight: bold;
+    float: left;
 }
 span.filters span.filter:after {
     content: "\2a2f";

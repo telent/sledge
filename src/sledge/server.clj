@@ -93,22 +93,29 @@
         "flac"
         {"href" "/bits/L3BhdGgvdG8vYXVkaW8uZmxhYw.flac", "codecs" nil, "type" "audio/flac"}})))
 
+;; :; curl -v -XPOST -H'content-type: text/plain' --data-binary '["like","_content","rhye"]' http://localhost:53281/tracks.json
+
+
+(defn tracks-for-query
+  ([db query] (tracks-for-query db query 50))
+  ([db query num-rows]
+   (let [project (if-let [f nil #_ (get p "_fields" ) ]
+                   #(select-keys % (map keyword (str/split f #",")))
+                   #(assoc %
+                           "_links" (media-links %)))]
+     (distinct (map project
+                    (take num-rows (db/entries-where db query )))))))
 
 (defn tracks-data [req]
-  (let [body (if-let [b (:body req)] (slurp b) "[]")
-        query (json/read-str body)
-        num-rows 50
-        project (if-let [f nil #_ (get p "_fields" ) ]
-                  #(select-keys % (map keyword (str/split f #",")))
-                  #(assoc %
-                     "_links" (media-links %)))]
-    (distinct (map project
-                   (take num-rows (db/entries-where (:db req) query ))))))
+  (let [body (if-let [b (:body req)] (slurp b) "[]")]
+    (tracks-for-query (:db req) (json/read-str body) 50)))
 
 (defn tracks-json-handler [req]
   {:status 200
    :headers {"Content-type" "text/json"}
    :body (json/write-str (tracks-data req))})
+
+(def common-words (line-seq (io/reader (io/resource "words.txt"))))
 
 (defn front-page-view [req]
   [:html
@@ -122,7 +129,10 @@
         [:link {:rel "stylesheet"
             :type "text/css"
             :href "/assets/css/palette.css"
-            }]]
+                }]
+    [:script {} (str "var common_words = "
+                     (json/write-str common-words)
+                     ";")]]
    [:body
     [:div {:id "om-app"}]
     (map (fn [url] [:script {:src url :type "text/javascript"}])

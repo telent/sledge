@@ -122,9 +122,10 @@
                      (= (get tags (keyword attr)) string))))
 	    likes)))
 
+;; we just want a really simple RNG that we can reliably seed with a
+;; value of our choice
 
 (def rand-mask (dec (bit-shift-left 1 31)))
-
 (defn lcg [x]
   ;; http://www.firstpr.com.au/dsp/rand31/
   (let [k 16807]
@@ -142,9 +143,8 @@
         paths (map (fn [r] (nth all-paths (quot r scale))) randoms)]
     (map #(vector % 1) paths)))
 
-(defmethod where "in" [index [_ playlist-name]]
+(defmethod where "shuffle" [index [_ playlist-name]]
   (random-tracks index (.hashCode playlist-name) 10))
-
 
 (defn write-log [name-map filename]
   (with-open [f (io/writer filename)]
