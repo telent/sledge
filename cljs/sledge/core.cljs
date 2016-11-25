@@ -223,15 +223,17 @@
                   :onEnded #(put! command-chan [:next-track])
                   }])))))
 
-(defn svg [& elements]
+(defn svg [attrs & elements]
   (into
-   [:svg {:xmlns "http://www.w3.org/2000/svg"
-          :version "1.1"
-          :width "24px"
-          :height "20px"
-          :viewBox "-10 -10 120 120"
-          :xmlnsXlink "http://www.w3.org/1999/xlink"
-          }]
+   [:svg (merge
+          {:xmlns "http://www.w3.org/2000/svg"
+           :version "1.1"
+           :width "24px"
+           :height "20px"
+           :viewBox "-10 -10 120 120"
+           :xmlnsXlink "http://www.w3.org/1999/xlink"
+           }
+          attrs)]
    elements))
 
 (defn polygon [& points]
@@ -240,24 +242,28 @@
              :fill "#006765"}])
 
 (defn svg-play []
-  (svg [:g {:transform "translate(15 0)"}
+  (svg {}
+       [:g {:transform "translate(15 0)"}
         (polygon 0,0 80,50 0,100 0,0)]))
 
 (defn svg-pause []
-  (svg [:g {:transform "translate(15 0)"}
+  (svg {}
+       [:g {:transform "translate(15 0)"}
         (polygon 0,0 25,0 25,100 0,100 0,0)
         (polygon 40,0 65,0 65,100 40,100 40,0)]))
 
 (defn svg-spinner []
   [:div {:className "spinning"}
    (svg
+    {}
     [:circle {:cx 50 :cy 20 :r 11 :fill "#006765"}]
     [:circle {:cx 50 :cy 80 :r 11 :fill "#006765"}]
     [:circle {:cx 20 :cy 50 :r 11 :fill "#006765"}]
     [:circle {:cx 80 :cy 50 :r 11 :fill "#006765"}])])
 
 (defn svg-skip-track [ & [backward?]]
-  (svg [:g {:transform (if backward? "rotate(180 50 50)" "translate(0 0)")}
+  (svg {}
+       [:g {:transform (if backward? "rotate(180 50 50)" "translate(0 0)")}
         (polygon 0,0 35,50 0,100 0,0)
         (polygon 40,0 80,50 40,100 40,0)
         (polygon 85,0 95,0 95,100 85,100 85,0)]))
