@@ -429,6 +429,18 @@
     (str (nth js/common_words i1) " " (nth js/common_words i2))))
 
 
+(defn parse-search-term [string]
+  (let [[term value] (string/split string #": *")]
+    (if value
+      [:like term value]
+      [:like "_content" string])))
+
+(deftest parse-search-test
+  (is (= (parse-search-term "hello") [:like "_content" "hello"]))
+  (is (= (parse-search-term "shuffle: wibble fish")
+         [:like "shuffle" "wibble fish"]))
+  (is (= (parse-search-term "shuffle:noblank pshaw")
+         [:like "shuffle" "noblank pshaw"])))
 
 (defn search-entry-view [term owner]
   (reify
@@ -439,7 +451,7 @@
             (fn [e]
               (let [str (.. e -target -value)]
                 (if-not (empty? str)
-                  (put! search-chan [:add [[:like "_content" str]]]))))]
+                  (put! search-chan [:add [(parse-search-term str)]]))))]
         (dom/div
          #js {:className "search-box"
               :onClick (fn [e]
