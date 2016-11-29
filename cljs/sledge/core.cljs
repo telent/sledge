@@ -432,15 +432,19 @@
 (defn parse-search-term [string]
   (let [[term value] (string/split string #": *")]
     (if value
-      [:like term value]
+      (if (= term "shuffle")
+        [:shuffle value]
+        [:like term value])
       [:like "_content" string])))
 
 (deftest parse-search-test
   (is (= (parse-search-term "hello") [:like "_content" "hello"]))
-  (is (= (parse-search-term "shuffle: wibble fish")
-         [:like "shuffle" "wibble fish"]))
-  (is (= (parse-search-term "shuffle:noblank pshaw")
-         [:like "shuffle" "noblank pshaw"])))
+  (is (= (parse-search-term "artist: wibble fish")
+         [:like "artist" "wibble fish"]))
+  (is (= (parse-search-term "shuffle: clockwork orange")
+         [:shuffle "clockwork orange"]))
+  (is (= (parse-search-term "artist:noblank pshaw")
+         [:like "artist" "noblank pshaw"])))
 
 (defn search-entry-view [term owner]
   (reify
