@@ -20,48 +20,11 @@ div.tracks {
     display: block;
     min-width: 100%;
 }
-div.tracks div.track {
-    display: block;
-    position: relative;
-    height: 44px;
-/*     background: #dff; */
-    margin-bottom: 6px;
-    border-bottom: #bbb dotted 1px;
-}
 
 div.tracks.queue div.track {
-    /*    background: #ffa; */
 }
 div.tracks.queue div.track.current-track {
     background-color: red;
-}
-
-
-div.tracks div.track .title {
-    position: absolute;
-    top: 4px; left: 2px;
-}
-div.tracks div.track .duration {
-    position: absolute;
-    top: 4px; right: 40px;
-}
-div.tracks div.track .album {
-    position: absolute;
-    font-size: 80%;
-    bottom: 3px; left: 8px;
-}
-div.tracks div.track .artist {
-    position: absolute;
-    font-size: 80%;
-    bottom: 3px; right: 40px;
-}
-div.tracks div.track button {
-    position: absolute;
-    width: 32px; height: 32px; 
-    top: 6px; right: 3px;
-}
-div.tracks div.track span {
-    display: inline;
 }
 
 .search-box {

@@ -126,35 +126,61 @@
   (is (mmss 381) "6:21"))
 
 
+(defn flex-track-listing [artist album title duration]
+  [:div {:style {:flex-grow "1"
+                 :display "inline-flex"
+                 :flex-direction "column"}}
+   [:div {:style {:display "inline-flex"
+                  :justify-content "space-between"}}
+
+    [:span {:style {:overflow "hidden"
+                    :flex-wrap "nowrap"}}
+     title]
+    [:span {}
+     duration ]]
+   [:div {:style {:display "inline-flex"
+                  :justify-content "space-between"
+                  :font-size "90%"}}
+    [:span {:style {:overflow "hidden"}}
+     album]
+    [:span {:style {:text-align "right"}}
+     artist]]])
+
 (defn results-track-view [track owner]
   (reify
     om/IRender
     (render [this]
       (let [search-chan (om/get-shared owner :search-channel)
             command-chan (om/get-shared owner :command-channel)
-            artist (dom/span
-                    #js {:className "artist"
-                         :onClick #(put! search-chan
-                                         [:add
-                                          [[:= "artist" (get @track "artist")]]])}
-                    (get track "artist"))
-            album (dom/span
-                   #js {:className "album"
-                        :onClick #(put! search-chan
-                                        [:add
-                                         [[:= "artist" (get @track "artist")]
-                                          [:= "album" (get @track "album")]]])}
-                   (get track "album"))
-            title (dom/span #js {:className "title"}
-                            (str (get track "track") " - " (get track "title")))
-            duration (dom/span #js {:className "duration"} (mmss (get track "length")))
-            button (dom/button #js
-                               {:onClick #(put! command-chan
-                                                [:enqueue @track])}
-                               "+")]
-        (apply dom/div #js {:className "track"}
-               [title artist album duration button]
-               )))))
+            artist [:span
+                     {:onClick #(put! search-chan
+                                      [:add
+                                       [[:= "artist" (get @track "artist")]]])}
+                    (get track "artist")]
+            album [:span
+                   {:onClick #(put! search-chan
+                                    [:add
+                                     [[:= "artist" (get @track "artist")]
+                                      [:= "album" (get @track "album")]]])}
+                   (get track "album")]
+            title (get track "title")
+            duration (mmss (get track "length"))
+            add-button [:button {:onClick #(put! command-chan
+                                                 [:enqueue @track])}
+                        "+"]]
+        (html [:div {:style {:display "flex"
+                             :flex-direction "row"
+                             :font-size "80%"
+                             :margin-bottom "6px"
+                             :border-bottom "#bbb dotted 1px"
+                             }}
+               (flex-track-listing
+                artist album title duration)
+               [:div {:style {:margin-left "0.5em"
+                              :align-self "center"
+                              :flex-grow "0"}}
+                add-button]])
+        ))))
 
 
 (defn xhr-search [term]
@@ -375,19 +401,33 @@
           (html
            [:div {:id "transport"} "Choose tracks to add to play queue"]))))))
 
+
 (defn queue-track-view [track owner]
   (reify
     om/IRenderState
     (render-state [this {:keys [index current?]}]
-      (let [command-chan (om/get-shared owner :command-channel)]
-        (html
-         [:div {:className (if current? "current-track track" "track")}
-          [:span {:className "artist"} (get track "artist")]
-          [:span {:className "album"} (get track "album" )]
-          [:span {:className "title"} (get track "title")]
-          [:span {:className "duration"} (mmss (get track "length"))]
-          [:button {:onClick #(put! command-chan [:dequeue index])}
-           "-"]])))))
+      (let [search-chan (om/get-shared owner :search-channel)
+            command-chan (om/get-shared owner :command-channel)
+            artist  (get track "artist")
+            album (get track "album")
+            title (get track "title")
+            duration (mmss (get track "length"))
+            remove-button [:button {:onClick #(put! command-chan
+                                                    [:enqueue @track])}
+                           "-"]]
+        (html [:div {:style {:display "flex"
+                             :background (if current? "red" "inherit")
+                             :flex-direction "row"
+                             :font-size "80%"
+                             :margin-bottom "6px"
+                             :border-bottom "#bbb dotted 1px"
+                             }}
+               (flex-track-listing
+                artist album title duration)
+               [:div {:style {:margin-left "0.5em"
+                              :align-self "center"
+                              :flex-grow "0"}}
+                remove-button]])))))
 
 (defn queue-view [queue owner]
   (reify
