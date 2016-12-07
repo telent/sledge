@@ -9,6 +9,12 @@ It runs [green-tags](https://github.com/DanPallas/green-tags) on your audio coll
 
 Status: works on my machine, works on my phone (Firefox for Android), ugly, many rough edges.
 
+## Prerequsites
+
+You need [ffmpeg](https://ffmpeg.org/) and it needs to be a build that
+supports playing all the formats of music that you intend to play.
+
+
 ## Configuring
 
 First create a configuration file to tell it where your music collection is and where to create its index files
@@ -24,7 +30,7 @@ $ cat sledge.conf.edn
 ## Running in deployment mode
 
     $ boot build
-    $ java -jar target/project.jar sledge.conf.edn
+    $ AVCONV=`type -p ffmpeg` java -jar target/project.jar sledge.conf.edn
 
 Now point your web browser at http://localhost:53281
 
@@ -43,14 +49,26 @@ window2$ boot watch cljs -O whitespace target -d dev-target
 window3$ boot repl -c -e '(wait-for-browser-repl)'
 ```
 
-You should get a prompt 
+Next you need to start the server: in the window running the CLJ repl,
+run
+
 ```
-<< started Weasel server on ws://0.0.0.0:9001 >>
-<< waiting for client to connect ...  
+(require 'sledge.core :reload)
+(sledge.core/-main "sledge.conf.edn")
 ```
 
 Now go to http://localhost:53281/, open the browser console, and
-evaluate `browser.repl()` 
+evaluate `window.repl()` 
+
+And now go to the window running `wait-for-browser-repl`, where you
+should see something like this:
+
+```
+<< started Weasel server on ws://0.0.0.0:9001 >>
+<< waiting for client to connect ...  connected! >>
+To quit, type: :cljs/quit
+cljs.user=> 
+```
 
 Adding CIDER to this is left as an exercise for the reader.
 

@@ -2,8 +2,10 @@
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:import [goog.net XhrIo] goog.Uri)
   (:require [goog.events :as events]
-            [cljsjs.react :as React]
+            [cljs.spec :as s :include-macros true]
+            [cljs.spec.test :as stest]
             [cljs.test :refer-macros [deftest is testing]]
+            [cljsjs.react :as React]
             [clojure.string :as string]
             [clojure.set :as set]
             [sablono.core :as html :refer-macros [html]]
@@ -29,7 +31,6 @@
               :audio-el {:track-offset 0 :playing false :ready-state nil}
               }
      }))
-
 
 (defn empty-queue [] {:tracks [] :current-track 0})
 
@@ -183,10 +184,33 @@
         ))))
 
 
+(s/def ::search-term
+  (s/or
+   ::comparison (s/tuple #{:= :like} string? string?)
+   ::shuffle (s/tuple #{:shuffle} string? )))
+
+(deftest specs
+  ;; these tests are here as experiments to see if I'm using
+  ;; clojure.spec correctly, not as tests of clojure.spec
+  (is (s/valid? ::search-term [:= "artist" "Lou Reed"]))
+  (is (s/valid? ::search-term [:shuffle "Manic Thursday"])))
+
+(defn search-term-as-js-obj [term]
+  (let [json-term (apply vector "and" term)]
+    (clj->js json-term)))
+
+(s/fdef search-term-as-js-obj
+        :args (s/cat :term (s/coll-of ::search-term))
+        :ret string?)
+
+(deftest search-term-test
+  (is (thrown? js/Error
+               (search-term-as-js-obj [[:fgh 7 "artist" "Queen"]])))
+  (is (= (js->clj (search-term-as-js-obj [[:like "artist" "Queen"]]))
+         ["and"  ["like" "artist" "Queen"]])))
+
 (defn xhr-search [term]
-  (let [json-term (apply vector "and" term)
-        body (.stringify js/JSON (clj->js json-term))
-        channel (chan)]
+  (let [channel (chan)]
     (.send XhrIo "/tracks.json"
            (fn [e]
              (let [xhr (.-target e)
@@ -194,7 +218,7 @@
                    o (and (< code 400) (js->clj (.getResponseJson xhr)))]
                (put! channel (or o []))))
            "POST"
-           body
+            (.stringify js/JSON (search-term-as-js-obj term))
            {"Content-Type" "text/plain"}
            )
     channel))
@@ -449,6 +473,7 @@
                (:tracks queue) (range 0 999))
           ])))))
 
+
 (defmulti format-search-term (fn [op & terms] op))
 
 (defmethod format-search-term :like [_ field value]
@@ -532,7 +557,6 @@
      (.canPlayType player
                    (if codec (str media-type "; codecs=" codec) media-type))))
 
-
 (defn best-media-url [r]
   (let [urls (get r "_links")]
     (get
@@ -540,13 +564,16 @@
                     (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
-
-
 (defn update-term [[command new-terms] previous]
   (case command
     :add (set/union previous (set new-terms))
     :replace (set new-terms)
     :drop (set/difference previous new-terms)))
+
+(s/fdef update-term
+        :args (s/cat :action (s/tuple #{:add :replace :drop}
+                                      (s/coll-of ::search-term))
+                     :previous (s/coll-of ::search-term)))
 
 (defn shuffle-button [term owner]
   (reify
@@ -656,4 +683,5 @@
     (swap! app-state assoc-in [:player :want-play] true)))
 
 (.addEventListener js/window "load" init)
+(stest/instrument)
 (cljs.test/run-tests)

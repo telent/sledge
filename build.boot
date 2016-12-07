@@ -1,20 +1,21 @@
 (set-env!
  :resource-paths #{"resources"}
  :source-paths #{"src" "cljs"}
- :dependencies '[[org.clojure/clojure "1.8.0"]
+ :dependencies '[[org.clojure/clojure "1.9.0-alpha14"]
                  [com.cemerick/piggieback "0.2.1"]
                  [org.clojure/tools.nrepl "0.2.12"]
                  [weasel "0.7.0" :exclusions [org.clojure/clojurescript]]
                  [green-tags "0.3.0-alpha"]
                  [hiccup "1.0.5"]
                  [boot-deps "0.1.6"]
-                 [aleph "0.4.1"]
-                 [ring "1.5.0"  :exclusions [org.clojure/java.classpath]]
+                 [aleph "0.4.2-alpha10"]
+                 [ring "1.6.0-beta6"  :exclusions [org.clojure/java.classpath]]
                  [org.clojure/data.json "0.2.6"]
-                 [org.clojure/clojurescript "1.9.229"]
-                 [org.clojure/core.async "0.2.391"]
-                 [org.omcljs/om "1.0.0-alpha44"]
-                 [sablono "0.7.4"]
+                 [org.clojure/clojurescript "1.9.293"]
+                 [org.clojure/core.async "0.2.395"]
+                 [org.omcljs/om "1.0.0-alpha47"]
+                 [sablono "0.7.6"]
+                 [org.clojure/test.check "0.9.0"]
                  [juxt/dirwatch "0.2.3"]])
 
 (require '[sledge.boot-build :refer :all])
