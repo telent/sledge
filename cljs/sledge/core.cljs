@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:import [goog.net XhrIo] goog.Uri)
   (:require [goog.events :as events]
+            [cljs.spec :as s]
             [cljsjs.react :as React]
             [cljs.test :refer-macros [deftest is testing]]
             [clojure.string :as string]
@@ -29,7 +30,6 @@
               :audio-el {:track-offset 0 :playing false :ready-state nil}
               }
      }))
-
 
 (defn empty-queue [] {:tracks [] :current-track 0})
 
@@ -183,8 +183,20 @@
         ))))
 
 
+(s/def ::search-term
+  (s/or
+   ::comparison (s/tuple #{:= :like} string? string?)
+   ::shuffle (s/tuple #{:shuffle} string? )))
+
+(deftest specs
+  ;; these tests are here as experiments to see if I'm using
+  ;; clojure.spec correctly, not as tests of clojure.spec
+  (is (s/valid? ::search-term [:= "artist" "Lou Reed"]))
+  (is (s/valid? ::search-term [:shuffle "Manic Thursday"])))
+
 (defn xhr-search [term]
-  (let [json-term (apply vector "and" term)
+  (let [conformed-term (s/conform (s/coll-of ::search-term) term)
+        json-term (apply vector "and" conformed-term)
         body (.stringify js/JSON (clj->js json-term))
         channel (chan)]
     (.send XhrIo "/tracks.json"
@@ -448,6 +460,7 @@
                             }})
                (:tracks queue) (range 0 999))
           ])))))
+
 
 (defmulti format-search-term (fn [op & terms] op))
 
