@@ -554,13 +554,16 @@
                     (map (partial get urls) ["ogg" "mp3" "wma" "wav"])))
      "href")))
 
-
-
 (defn update-term [[command new-terms] previous]
   (case command
     :add (set/union previous (set new-terms))
     :replace (set new-terms)
     :drop (set/difference previous new-terms)))
+
+(s/fdef update-term
+        :args (s/cat :action (s/tuple #{:add :replace :drop}
+                                      (s/coll-of ::search-term))
+                     :previous (s/coll-of ::search-term)))
 
 (defn shuffle-button [term owner]
   (reify
