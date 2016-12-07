@@ -195,11 +195,22 @@
   (is (s/valid? ::search-term [:= "artist" "Lou Reed"]))
   (is (s/valid? ::search-term [:shuffle "Manic Thursday"])))
 
+(defn search-term-as-js-obj [term]
+  (let [json-term (apply vector "and" term)]
+    (clj->js json-term)))
+
+(s/fdef search-term-as-js-obj
+        :args (s/cat :term (s/coll-of ::search-term))
+        :ret string?)
+
+(deftest search-term-test
+  (is (thrown? js/Error
+               (search-term-as-js-obj [[:fgh 7 "artist" "Queen"]])))
+  (is (= (js->clj (search-term-as-js-obj [[:like "artist" "Queen"]]))
+         ["and"  ["like" "artist" "Queen"]])))
+
 (defn xhr-search [term]
-  (let [conformed-term (s/conform (s/coll-of ::search-term) term)
-        json-term (apply vector "and" conformed-term)
-        body (.stringify js/JSON (clj->js json-term))
-        channel (chan)]
+  (let [channel (chan)]
     (.send XhrIo "/tracks.json"
            (fn [e]
              (let [xhr (.-target e)
@@ -207,7 +218,7 @@
                    o (and (< code 400) (js->clj (.getResponseJson xhr)))]
                (put! channel (or o []))))
            "POST"
-           body
+            (.stringify js/JSON (search-term-as-js-obj term))
            {"Content-Type" "text/plain"}
            )
     channel))
@@ -546,7 +557,6 @@
      (.canPlayType player
                    (if codec (str media-type "; codecs=" codec) media-type))))
 
-
 (defn best-media-url [r]
   (let [urls (get r "_links")]
     (get
@@ -673,4 +683,5 @@
     (swap! app-state assoc-in [:player :want-play] true)))
 
 (.addEventListener js/window "load" init)
+(stest/instrument)
 (cljs.test/run-tests)
