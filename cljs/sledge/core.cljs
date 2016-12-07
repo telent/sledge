@@ -2,9 +2,10 @@
   (:require-macros [cljs.core.async.macros :refer [go alt!]])
   (:import [goog.net XhrIo] goog.Uri)
   (:require [goog.events :as events]
-            [cljs.spec :as s]
-            [cljsjs.react :as React]
+            [cljs.spec :as s :include-macros true]
+            [cljs.spec.test :as stest]
             [cljs.test :refer-macros [deftest is testing]]
+            [cljsjs.react :as React]
             [clojure.string :as string]
             [clojure.set :as set]
             [sablono.core :as html :refer-macros [html]]

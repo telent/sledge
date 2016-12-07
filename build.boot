@@ -15,6 +15,7 @@
                  [org.clojure/core.async "0.2.395"]
                  [org.omcljs/om "1.0.0-alpha47"]
                  [sablono "0.7.6"]
+                 [org.clojure/test.check "0.9.0"]
                  [juxt/dirwatch "0.2.3"]])
 
 (require '[sledge.boot-build :refer :all])
