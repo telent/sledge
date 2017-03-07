@@ -1,0 +1,30 @@
+<Wix>
+  <Product Id="*" Name="sledge" UpgradeCode="7acae535-b0ac-4625-9393-b2e2d99c5c2b" Language="1033" Codepage="1252" Version="0.1.0" Manufacturer="Telent">
+    <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes"/>
+    <Upgrade Id="7acae535-b0ac-4625-9393-b2e2d99c5c2b">
+      <UpgradeVersion Minimum="0.0.0" Property="PREVIOUSVERSIONSINSTALLED" IncludeMinimum="yes" IncludeMaximum="no"/>
+    </Upgrade>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts Before="InstallInitialize"/>
+    </InstallExecuteSequence>
+    <Package InstallerVersion="200" Compressed="yes" Comments="Windows Installer Package" InstallScope="perMachine"/>
+    <Media Id="1" Cabinet="app.cab" EmbedCab="yes"/>
+    <Icon Id="icon.ico" SourceFile="/tmp/sledge.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="icon.ico"/>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="DesktopFolder" Name="Desktop" />
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="APPROOTDIR" Name="Sledge Media Server">
+          <Component Id='SledgeBat' Guid='*'>
+            <File Id='SledgeBat' Name='Sledge.bat' Source="/dist/sledge.bat" KeyPath='yes'>
+            </File>
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="Everything" Title="Everything" Level='1'>
+      <ComponentRef Id='SledgeBat' />
+      <ComponentGroupRef Id="CG.generated" />
+    </Feature>
+  </Product>
+</Wix>
