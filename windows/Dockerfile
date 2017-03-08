@@ -43,8 +43,8 @@ RUN cp -r zulu8.20.0.5-jdk8.0.121-win_x64/jre /dist
 RUN apt-get -y install wixl
 COPY sledge.ico /tmp
 COPY sledge.bat /dist/
-COPY project.jar /dist/sledge.jar
+COPY sledge.jar /dist/sledge.jar
 RUN cp -r /target/bin /target/lib  /dist
-RUN find /dist/bin/ -type f | wixl-heat -p /dist/ --directory-ref APPROOTDIR --var var.SourceDir --component-group CG.generated > /tmp/files.wxs
+RUN find /dist/ -type f | wixl-heat -p /dist/ --directory-ref APPROOTDIR --var var.SourceDir --component-group CG.generated > /tmp/files.wxs
 COPY sledge.wxs /tmp
 RUN wixl -D SourceDir=/dist/ -o /tmp/sledge.msi  /tmp/sledge.wxs /tmp/files.wxs 
