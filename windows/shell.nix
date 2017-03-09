@@ -19,7 +19,7 @@ let sourceFilesOnly = path: type:
     };
  in stdenv.mkDerivation {
       name = "wsledge";
-      buildInputs = [ docker kvm windowsDisk ];
+      buildInputs = [ docker kvm windowsDisk cdrkit zip ];
       buildPhase = ''
         make
       '';
@@ -27,7 +27,7 @@ let sourceFilesOnly = path: type:
         emu(){
           mkdir -p var ;
           qemu-img create -f qcow2 -b ${windowsDisk}/windows10.qcow2 var/scratch.qcow2 ; 
-          ( qemu-kvm -usbdevice tablet -display sdl -m 4G -hda var/scratch.qcow2 & );
+          ( qemu-kvm -usbdevice tablet -display sdl -m 4G -hda var/scratch.qcow2 -cdrom cdrom.iso & );
           ( cd out && python -m SimpleHTTPServer 8029  )
         }        
       '';
