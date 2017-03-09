@@ -27,8 +27,7 @@ let sourceFilesOnly = path: type:
         emu(){
           mkdir -p var ;
           qemu-img create -f qcow2 -b ${windowsDisk}/windows10.qcow2 var/scratch.qcow2 ; 
-          ( qemu-kvm -usbdevice tablet -display sdl -m 4G -hda var/scratch.qcow2 -cdrom cdrom.iso & );
-          ( cd out && python -m SimpleHTTPServer 8029  )
+          sudo qemu-kvm -usbdevice tablet -display sdl -m 4G -hda var/scratch.qcow2 -cdrom cdrom.iso -usb -device usb-host,$(lsusb |awk -F'[ :]' '/Audio Controller/ {print "hostbus=" $2 ",hostaddr=" $4 }')
         }        
       '';
  }
