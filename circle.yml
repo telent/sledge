@@ -29,5 +29,5 @@ deployment:
     branch: master
     commands:
       - PATCH_LEVEL=`git rev-list HEAD --count`  boot build
-      - make -C windows sledge.msi
+      - make -C windows out/sledge.msi
       - PATCH_LEVEL=`git rev-list HEAD --count`  ruby push_github_release.rb target/project.jar windows/sledge.msi
