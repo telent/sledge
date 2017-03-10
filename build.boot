@@ -22,9 +22,16 @@
 (require '[weasel.repl.websocket])
 (require '[cemerick.piggieback])
 
+(def package-version
+  (let [v (clojure.string/trim-newline (slurp "VERSION"))
+        p (System/getenv "PATCH_LEVEL")]
+    (if p
+      (str v "." p)
+      (str v ".0-SNAPSHOT" p))))
+
 (task-options!
  pom {:project 'sledge
-      :version "0.1.1"}
+      :version package-version}
  jar {:main 'sledge.core}
  cljs {:main 'sledge.core
        :optimizations :whitespace
