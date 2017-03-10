@@ -23,4 +23,11 @@ test:
   override:
     # Nothing to run here
     - echo 1
+    
+deployment:
+  jar:
+    branch: master
+    commands:
+      - PATCH_LEVEL=`git rev-list HEAD --count`  boot build
+      - PATCH_LEVEL=`git rev-list HEAD --count`  ruby push_github_release.rb target/project.jar    
 
